@@ -1,0 +1,2789 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="color-scheme" content="light">
+  <title>教師課堂進度管家 TeachFlow Pro</title>
+
+  <!-- 100% 內建獨立樣式庫：完全不依賴外部網路與 CDN，手機離線秒開、GitHub Pages 即開即用 -->
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background-color: #f1f5f9 !important;
+      color: #1e293b !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      border: none;
+      background: none;
+    }
+    input, select, textarea {
+      font-family: inherit;
+    }
+
+    /* 主容器與頂部看板 */
+    .tf-shell {
+      max-width: 28rem;
+      margin: 0 auto;
+      min-height: 100vh;
+      background-color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+      position: relative;
+      padding-bottom: 2.5rem;
+    }
+    .tf-header {
+      background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+      color: #ffffff;
+      padding: 1.5rem 1rem 1rem 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .tf-row-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .tf-row-center {
+      display: flex;
+      align-items: center;
+    }
+    .tf-badge-ver {
+      font-size: 10px;
+      background-color: rgba(99, 102, 241, 0.65);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      margin-left: 6px;
+      font-weight: 600;
+    }
+    .tf-badge-count {
+      margin-left: 6px;
+      background-color: #312e81;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      color: #e0e7ff;
+      font-weight: 600;
+    }
+    .tf-top-btn {
+      font-size: 11px;
+      background-color: #4f46e5;
+      color: #ffffff;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(129, 140, 248, 0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .tf-top-btn:hover { background-color: #6366f1; }
+    .tf-top-btn:active { transform: scale(0.95); }
+
+    /* 導航分頁列 (5 個分頁精簡單行顯示) */
+    .tf-nav {
+      display: flex;
+      gap: 4px;
+      margin-top: 1rem;
+      background-color: rgba(30, 27, 75, 0.45);
+      padding: 4px;
+      border-radius: 12px;
+    }
+    .tf-tab-btn {
+      flex: 1;
+      padding: 7px 2px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      transition: all 0.15s ease;
+      color: #c7d2fe;
+      white-space: nowrap;
+    }
+    .tf-tab-btn.active {
+      background-color: #ffffff;
+      color: #3730a3;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* 主內容區與卡片 */
+    .tf-main {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    .tf-day-switcher {
+      background-color: #ffffff;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .tf-day-btn {
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      background-color: #f1f5f9;
+      color: #475569;
+      transition: all 0.15s ease;
+    }
+    .tf-day-btn.active {
+      background-color: #4f46e5;
+      color: #ffffff;
+    }
+    .tf-card {
+      background-color: #ffffff;
+      border-radius: 16px;
+      padding: 1rem;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 0.875rem;
+    }
+    .tf-swap-tag {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: #f59e0b;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-bottom-left-radius: 8px;
+    }
+    .tf-period-pill {
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background-color: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #e0e7ff;
+    }
+    .tf-input-chapter {
+      width: 100%;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      border: none;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 6px;
+      background: transparent;
+      outline: none;
+    }
+    .tf-input-chapter:focus { border-bottom-color: #4f46e5; }
+    .tf-stepper-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #f8fafc;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid #f1f5f9;
+    }
+    .tf-page-input {
+      width: 3.4rem;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: #4f46e5;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 0;
+    }
+    .tf-step-btn-minus {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      font-weight: 800;
+      color: #475569;
+      font-size: 15px;
+    }
+    .tf-step-btn-plus1 {
+      width: 44px;
+      height: 34px;
+      border-radius: 8px;
+      background-color: #4f46e5;
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .tf-step-btn-plus2 {
+      width: 44px;
+      height: 34px;
+      border-radius: 8px;
+      background-color: #e0e7ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    /* 停頓點快速標籤 */
+    .tf-tags-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      align-items: center;
+    }
+    .tf-tag-chip {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      transition: all 0.15s ease;
+    }
+    .tf-tag-chip:hover {
+      background-color: #e2e8f0;
+    }
+    .tf-tag-chip.active {
+      background-color: #eef2ff;
+      color: #4338ca;
+      border-color: #6366f1;
+      box-shadow: 0 1px 2px rgba(79, 70, 229, 0.15);
+    }
+    .tf-tag-add-btn {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background-color: #ffffff;
+      color: #64748b;
+      border: 1px dashed #cbd5e1;
+    }
+    .tf-tag-add-btn:hover {
+      border-color: #6366f1;
+      color: #4338ca;
+    }
+    .tf-ch-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 8px;
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .tf-ch-pill.done {
+      background-color: #d1fae5;
+      color: #047857;
+      border-color: #a7f3d0;
+    }
+    .tf-ch-pill.current {
+      background-color: #eef2ff;
+      color: #4338ca;
+      border-color: #6366f1;
+    }
+    .tf-tag-mini-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background-color: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+    }
+
+    .tf-memo-input {
+      width: 100%;
+      font-size: 12px;
+      color: #475569;
+      background-color: #f1f5f9;
+      border-radius: 8px;
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      outline: none;
+    }
+    .tf-memo-input:focus {
+      background-color: #ffffff;
+      border-color: #a5b4fc;
+    }
+
+    /* 班級卡片底部聯絡小老師按鈕 */
+    .tf-card-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .tf-mail-btn {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 8px;
+      background-color: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .tf-mail-btn:hover { background-color: #d1fae5; }
+    .tf-mail-btn:active { transform: scale(0.96); }
+
+    /* 當月行事曆樣式 */
+    .tf-cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .tf-cal-nav-btn {
+      padding: 5px 10px;
+      border-radius: 8px;
+      background-color: #f1f5f9;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .tf-cal-nav-btn:hover { background-color: #e2e8f0; }
+    .tf-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+    .tf-cal-dow {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      padding: 4px 0;
+    }
+    .tf-cal-dow.weekend { color: #e11d48; }
+    .tf-cal-cell {
+      min-height: 46px;
+      border-radius: 10px;
+      padding: 4px 2px;
+      border: 1px solid #f1f5f9;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .tf-cal-cell:hover { border-color: #a5b4fc; background-color: #f8fafc; }
+    .tf-cal-cell.is-empty {
+      background-color: transparent;
+      border-color: transparent;
+      cursor: default;
+    }
+    .tf-cal-cell.is-weekend {
+      background-color: #f8fafc;
+      color: #94a3b8;
+    }
+    .tf-cal-cell.is-holiday {
+      background-color: #fff1f2;
+      border-color: #fecdd3;
+      color: #be123c;
+    }
+    .tf-cal-cell.is-exam {
+      background-color: #fef3c7;
+      border-color: #fcd34d;
+      color: #92400e;
+    }
+    .tf-cal-cell.is-today {
+      box-shadow: inset 0 0 0 2px #4f46e5;
+    }
+    .tf-cal-cell.is-selected {
+      background-color: #eef2ff;
+      border-color: #4f46e5;
+    }
+    .tf-cal-num {
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .tf-cal-dots {
+      display: flex;
+      gap: 2px;
+      margin-top: 3px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .tf-dot-hol { width: 5px; height: 5px; border-radius: 999px; background-color: #e11d48; }
+    .tf-dot-memo { width: 5px; height: 5px; border-radius: 999px; background-color: #4f46e5; }
+    .tf-dot-exam { width: 5px; height: 5px; border-radius: 999px; background-color: #d97706; }
+    .tf-cal-tag-tiny {
+      font-size: 8px;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-top: 2px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 2px;
+    }
+
+    /* 段考配速看板 */
+    .tf-exam-banner {
+      background: linear-gradient(135deg, #4338ca 0%, #312e81 100%);
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 10px rgba(67, 56, 202, 0.2);
+    }
+    .tf-progress-track {
+      width: 100%;
+      background-color: #f1f5f9;
+      border-radius: 9999px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .tf-progress-bar {
+      background-color: #4f46e5;
+      height: 10px;
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+    }
+    .pace-green { background-color: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
+    .pace-amber { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .pace-rose  { background-color: #ffe4e6; color: #be123c; border: 1px solid #fecdd3; }
+    .pace-indigo { background-color: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+    .tf-mini-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      background-color: #f1f5f9;
+      color: #475569;
+      font-weight: 800;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tf-mini-btn:hover { background-color: #e2e8f0; }
+
+    /* 常規課表 6 欄矩陣 */
+    .tf-schedule-grid {
+      display: grid;
+      grid-template-columns: 0.7fr repeat(5, 1fr);
+      gap: 5px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .tf-grid-head {
+      font-weight: 700;
+      color: #475569;
+      padding: 7px 2px;
+      background-color: #f1f5f9;
+      border-radius: 6px;
+    }
+    .tf-grid-period {
+      font-weight: 700;
+      color: #94a3b8;
+      padding: 10px 2px;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tf-grid-cell {
+      padding: 10px 2px;
+      border: 1px solid #f1f5f9;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      transition: all 0.15s ease;
+    }
+    .tf-grid-cell.has-cls {
+      color: #4338ca;
+      background-color: rgba(238, 242, 255, 0.75);
+      border-color: #e0e7ff;
+    }
+    .tf-grid-cell.empty-cls {
+      color: #cbd5e1;
+      background-color: rgba(248, 250, 252, 0.6);
+    }
+    .tf-grid-cell:hover {
+      background-color: #e0e7ff;
+      color: #3730a3;
+      border-color: #a5b4fc;
+    }
+
+    /* 檔案上傳卡片 */
+    .tf-upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .tf-upload-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem 0.5rem;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .tf-upload-indigo {
+      border: 2px dashed #c7d2fe;
+      background-color: rgba(238, 242, 255, 0.5);
+      color: #4338ca;
+    }
+    .tf-upload-emerald {
+      border: 2px dashed #a7f3d0;
+      background-color: rgba(236, 253, 245, 0.5);
+      color: #047857;
+    }
+
+    /* 彈窗 Modal 與 Toast */
+    .tf-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 50;
+    }
+    .tf-modal-box {
+      background-color: #ffffff;
+      border-radius: 18px;
+      padding: 1.25rem;
+      max-width: 24rem;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    }
+    .tf-seg-ctrl {
+      display: flex;
+      background-color: #f1f5f9;
+      padding: 3px;
+      border-radius: 10px;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .tf-seg-btn {
+      flex: 1;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 8px;
+      color: #64748b;
+      transition: all 0.15s ease;
+    }
+    .tf-seg-btn.active {
+      background-color: #ffffff;
+      color: #4338ca;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    .tf-bcc-list {
+      max-height: 165px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 6px;
+      background-color: #f8fafc;
+    }
+    .tf-bcc-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 6px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 12px;
+    }
+    .tf-bcc-row:last-child { border-bottom: none; }
+    .tf-toast {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 60;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: rgba(15, 23, 42, 0.94);
+      color: #ffffff;
+      transition: opacity 0.2s ease;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .tf-hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="app" class="tf-shell">
+
+  <!-- 頂部動態 Toast 通知 -->
+  <div id="toast-box" class="tf-toast tf-hidden">
+    <span id="toast-icon">✅</span>
+    <span id="toast-msg">已自動存檔</span>
+  </div>
+
+  <!-- 頂部資訊看板 -->
+  <header class="tf-header">
+    <div class="tf-row-between">
+      <div>
+        <div class="tf-row-center">
+          <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em;">TeachFlow 教學進度管家</span>
+          <span class="tf-badge-ver">Pro v1.4</span>
+        </div>
+        <p style="font-size: 12px; color: #e0e7ff; margin: 6px 0 0 0; font-weight: 500;">
+          <span id="header-date-str"></span>
+          <span id="header-class-count" class="tf-badge-count"></span>
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 4px; flex-wrap: nowrap;">
+        <button id="btn-open-cloud-sync" class="tf-top-btn" onclick="window.tfApp.openCloudModal()" title="Google 雲端同步">
+          <span>☁️</span> <span>同步</span>
+        </button>
+        <button id="btn-open-mail-blast" class="tf-top-btn" onclick="window.tfApp.openMailModal(null, 'bcc')" title="全學年密件副本群發小老師">
+          <span>✉️</span> <span>群發</span>
+        </button>
+        <button id="btn-open-swap" class="tf-top-btn" onclick="window.tfApp.openSwapModal()">
+          <span>🔄</span> <span>調課</span>
+        </button>
+        <button id="btn-export-csv" class="tf-top-btn" onclick="window.tfApp.exportCSV()">
+          <span>📊</span> <span>匯出</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 導航分頁列 (5 分頁) -->
+    <div class="tf-nav">
+      <button id="tab-btn-today" class="tf-tab-btn active" onclick="window.tfApp.switchTab('today')">
+        今日課堂
+      </button>
+      <button id="tab-btn-calendar" class="tf-tab-btn" onclick="window.tfApp.switchTab('calendar')">
+        當月行事曆
+      </button>
+      <button id="tab-btn-matrix" class="tf-tab-btn" onclick="window.tfApp.switchTab('matrix')">
+        段考配速
+      </button>
+      <button id="tab-btn-schedule" class="tf-tab-btn" onclick="window.tfApp.switchTab('schedule')">
+        常規課表
+      </button>
+      <button id="tab-btn-import" class="tf-tab-btn" onclick="window.tfApp.switchTab('import')">
+        AI 匯入
+      </button>
+    </div>
+  </header>
+
+  <!-- 主內容視窗 -->
+  <main class="tf-main">
+
+    <!-- 頁籤 1: 今日課堂 -->
+    <section id="view-today">
+      <!-- 授課星期快速切換列 -->
+      <div class="tf-day-switcher">
+        <span style="font-size: 11px; font-weight: 700; color: #64748b;">授課日切換：</span>
+        <div id="day-switcher-btns" style="display: flex; gap: 4px;"></div>
+      </div>
+
+      <div class="tf-row-between" style="padding: 0 4px; margin-bottom: 12px; align-items: center;">
+        <span id="today-list-title" style="font-size: 12px; font-weight: 700; color: #64748b; letter-spacing: 0.05em;">今日授課清單</span>
+        <span style="font-size: 11px; color: #94a3b8;">下課點選 +1 / +2 與停頓標籤</span>
+      </div>
+      <div id="today-list-container"></div>
+    </section>
+
+    <!-- 頁籤 2: 當月行事曆 -->
+    <section id="view-calendar" class="tf-hidden">
+      <div class="tf-card">
+        <div class="tf-cal-header">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="tf-cal-nav-btn" onclick="window.tfApp.changeCalMonth(-1)">◀</button>
+            <span id="cal-month-title" style="font-size: 15px; font-weight: 800; color: #0f172a; min-width: 96px; text-align: center;">2026 年 11 月</span>
+            <button class="tf-cal-nav-btn" onclick="window.tfApp.changeCalMonth(1)">▶</button>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <button class="tf-cal-nav-btn" onclick="window.tfApp.goCalToday()" style="color: #4338ca; background: #eef2ff;">本月</button>
+            <button class="tf-cal-nav-btn" onclick="window.tfApp.openHolidayRangeModal()" style="color: #be123c; background: #fff1f2;">+ 連假</button>
+          </div>
+        </div>
+
+        <!-- 圖例說明 -->
+        <div style="display: flex; gap: 10px; font-size: 10px; color: #64748b; margin-bottom: 10px; flex-wrap: wrap;">
+          <span style="display: inline-flex; align-items: center; gap: 3px;"><span class="tf-dot-hol"></span> 放假/連假(自動扣堂)</span>
+          <span style="display: inline-flex; align-items: center; gap: 3px;"><span class="tf-dot-exam"></span> 段考日</span>
+          <span style="display: inline-flex; align-items: center; gap: 3px;"><span class="tf-dot-memo"></span> 教師記事</span>
+        </div>
+
+        <!-- 星期表頭與日期格子 -->
+        <div id="cal-grid-container" class="tf-cal-grid"></div>
+      </div>
+
+      <!-- 選定日期詳細與教師記事面板 -->
+      <div id="cal-day-detail" class="tf-card"></div>
+    </section>
+
+    <!-- 頁籤 3: 段考配速看板 -->
+    <section id="view-matrix" class="tf-hidden">
+      <div class="tf-exam-banner">
+        <div class="tf-row-between" style="font-size: 12px; align-items: center;">
+          <span style="color: #c7d2fe; font-weight: 600;">段考進度配速目標</span>
+          <button onclick="window.tfApp.openExamConfigModal()" style="background: rgba(99,102,241,0.45); color: #ffffff; padding: 3px 10px; border-radius: 999px; font-family: monospace; font-size: 11px;">
+            考試日：<span id="exam-date-label">2026-11-26</span> ✏️
+          </button>
+        </div>
+        <div class="tf-row-between" style="margin-top: 8px; align-items: baseline; gap: 8px;">
+          <div style="font-size: 24px; font-weight: 900; letter-spacing: -0.02em; white-space: nowrap;">
+            倒數 <span id="exam-days-label">10</span> 天
+          </div>
+          <div style="font-size: 11px; color: #e0e7ff; text-align: right; line-height: 1.4;">
+            目標章節：<strong id="exam-target-label" style="color: #ffffff; font-size: 12px;">共 2 章</strong>
+          </div>
+        </div>
+        <div id="exam-chapters-banner-pills" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;"></div>
+        <div class="tf-row-between" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(99,102,241,0.5); font-size: 11px; color: #c7d2fe;">
+          <span id="exam-holiday-deduct-info">自動扣除行事曆假日與連假</span>
+          <span>依課表即時精算各班堂數</span>
+        </div>
+      </div>
+
+      <div id="matrix-list-container"></div>
+    </section>
+
+    <!-- 頁籤 4: 常規課表矩陣 -->
+    <section id="view-schedule" class="tf-hidden">
+      <div class="tf-card">
+        <div style="margin-bottom: 12px;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: #0f172a;">每週常規授課課表</h3>
+          <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">點擊任一節次格子即可快速修改或新增授課班級（會自動連動段考倒數堂數）</p>
+        </div>
+        <div id="schedule-grid-container" class="tf-schedule-grid"></div>
+      </div>
+    </section>
+
+    <!-- 頁籤 5: AI 智慧影像與文件辨識匯入 -->
+    <section id="view-import" class="tf-hidden">
+      <div class="tf-card">
+        <h3 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 800; color: #0f172a;">📸 課表 / 行事曆智慧辨識</h3>
+        <p style="margin: 0 0 12px 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+          直接上傳教務處發布的個人課表截圖（JPG/PNG）或整學期行事曆（PDF/圖檔），自動帶入放假日並精算倒數堂數。
+        </p>
+
+        <!-- API Key 設定 -->
+        <div style="margin-bottom: 16px; background-color: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <label style="font-size: 10px; font-weight: 700; color: #64748b; display: block; margin-bottom: 4px;">
+            🔑 GEMINI API KEY (選填，未填可使用內建模擬辨識)
+          </label>
+          <input 
+            id="input-api-key"
+            type="password" 
+            placeholder="貼上個人 Google AI API Key..." 
+            onchange="window.tfApp.saveApiKey(this.value)"
+            style="width: 100%; font-size: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; outline: none;"
+          />
+        </div>
+
+        <!-- 檔案上傳按鈕 -->
+        <div class="tf-upload-grid">
+          <label class="tf-upload-box tf-upload-indigo">
+            <span style="font-size: 24px; margin-bottom: 4px;">📅</span>
+            <span style="font-size: 12px; font-weight: 800;">匯入課表圖檔</span>
+            <span style="font-size: 10px; opacity: 0.75; margin-top: 2px;">JPG / PNG / PDF</span>
+            <input type="file" accept="image/*,application/pdf" class="tf-hidden" onchange="window.tfApp.handleFileUpload(event, 'schedule')" />
+          </label>
+
+          <label class="tf-upload-box tf-upload-emerald">
+            <span style="font-size: 24px; margin-bottom: 4px;">🏫</span>
+            <span style="font-size: 12px; font-weight: 800;">匯入學期行事曆</span>
+            <span style="font-size: 10px; opacity: 0.75; margin-top: 2px;">PDF / 官方截圖</span>
+            <input type="file" accept="image/*,application/pdf" class="tf-hidden" onchange="window.tfApp.handleFileUpload(event, 'calendar')" />
+          </label>
+        </div>
+
+        <!-- 快速體驗模擬辨識 -->
+        <div class="tf-row-between" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; align-items: center;">
+          <span style="font-size: 11px; color: #94a3b8;">手邊無圖檔？可一鍵測試辨識流程：</span>
+          <button onclick="window.tfApp.triggerMockImport()" style="font-size: 12px; font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 5px 10px; border-radius: 8px;">
+            試用範例課表辨識
+          </button>
+        </div>
+
+        <!-- 處理進度狀態 -->
+        <div id="import-processing-box" class="tf-hidden" style="margin-top: 14px; padding: 12px; background-color: #eef2ff; border-radius: 12px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 14px;">⏳</span>
+          <span id="import-status-text" style="font-size: 12px; font-weight: 600; color: #3730a3;">正在讀取文件與影像資訊...</span>
+        </div>
+      </div>
+
+      <!-- 預覽核對區 -->
+      <div id="import-preview-card" class="tf-card tf-hidden" style="border-color: #c7d2fe;">
+        <div class="tf-row-between" style="margin-bottom: 8px; align-items: center;">
+          <h4 style="margin: 0; font-size: 12px; font-weight: 800; color: #1e293b;">✅ 辨識結果核對預覽</h4>
+          <span style="font-size: 10px; color: #94a3b8;">請肉眼確認無誤後套用</span>
+        </div>
+        <pre id="import-preview-json" style="background-color: #f8fafc; padding: 10px; border-radius: 8px; font-size: 11px; font-family: monospace; color: #475569; overflow-x: auto; max-height: 160px; border: 1px solid #f1f5f9; margin: 0;"></pre>
+        <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+          <button onclick="window.tfApp.discardImport()" style="padding: 6px 12px; font-size: 12px; color: #64748b; font-weight: 600;">捨棄</button>
+          <button onclick="window.tfApp.commitImport()" style="padding: 6px 16px; font-size: 12px; background-color: #4f46e5; color: #ffffff; font-weight: 700; border-radius: 8px;">確認套用至課表</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 彈窗 1: 單次彈性調課 -->
+  <div id="modal-swap" class="tf-modal-backdrop tf-hidden">
+    <div class="tf-modal-box">
+      <h3 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 800; color: #0f172a;">🔄 課堂單次調換</h3>
+      <p style="margin: 0 0 16px 0; font-size: 12px; color: #94a3b8;">僅變更當日課堂安排，不影響每週常規課表基礎。</p>
+      
+      <div style="font-size: 12px;">
+        <div style="margin-bottom: 12px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">要調動的節次：</label>
+          <select id="swap-from-period" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; background-color: #f8fafc; font-weight: 700; color: #334155;"></select>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">調換為哪一個班級授課？</label>
+          <select id="swap-to-class" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; background-color: #f8fafc; font-weight: 700; color: #4338ca;"></select>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="window.tfApp.closeSwapModal()" style="padding: 6px 12px; font-size: 12px; color: #64748b; font-weight: 600;">取消</button>
+        <button onclick="window.tfApp.applySwap()" style="padding: 6px 16px; font-size: 12px; background-color: #4f46e5; color: #ffffff; border-radius: 8px; font-weight: 700;">套用變更</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 2: 點擊格子編輯常規課表 -->
+  <div id="modal-edit-cell" class="tf-modal-backdrop tf-hidden">
+    <div class="tf-modal-box">
+      <h3 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 800; color: #0f172a;">✏️ 設定每週常規排課</h3>
+      <p id="edit-cell-subtitle" style="margin: 0 0 12px 0; font-size: 12px; color: #94a3b8;"></p>
+      
+      <div style="font-size: 12px;">
+        <div style="margin-bottom: 10px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">授課班級名稱：</label>
+          <input 
+            id="edit-cell-input"
+            type="text"
+            placeholder="例如：101 班 (留空代表空堂)" 
+            style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; background-color: #f8fafc; font-weight: 700; color: #1e293b; outline: none;"
+          />
+        </div>
+        <div id="edit-cell-quick-btns" style="display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px;"></div>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="window.tfApp.closeEditCellModal()" style="padding: 6px 12px; font-size: 12px; color: #64748b; font-weight: 600;">取消</button>
+        <button onclick="window.tfApp.saveEditCellModal()" style="padding: 6px 16px; font-size: 12px; background-color: #4f46e5; color: #ffffff; border-radius: 8px; font-weight: 700;">儲存課表</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 3: 段考目標設定（以課本章節為核心） -->
+  <div id="modal-exam-config" class="tf-modal-backdrop tf-hidden">
+    <div class="tf-modal-box">
+      <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 800; color: #0f172a;">🎯 修改段考目標與範圍</h3>
+      <div style="font-size: 12px;">
+        <div style="margin-bottom: 12px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">段考日期區間（通常為 2～3 日）：</label>
+          <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;">
+            <input id="input-exam-start-date" type="date" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 6px; background-color: #f8fafc; font-weight: 700; color: #1e293b; font-size: 12px;" />
+            <span style="color: #94a3b8; font-weight: 700;">～</span>
+            <input id="input-exam-end-date" type="date" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 6px; background-color: #f8fafc; font-weight: 700; color: #1e293b; font-size: 12px;" />
+          </div>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">段考目標課本章節清單：</label>
+          <div id="exam-chapters-edit-list" style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px; background: #f8fafc; margin-bottom: 8px;"></div>
+          <div style="display: flex; gap: 6px;">
+            <input id="input-new-exam-chapter" type="text" placeholder="輸入章節，如：第 5 章 媒體與公共生活" style="flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 8px; background-color: #ffffff; font-size: 12px;" />
+            <button onclick="window.tfApp.addExamChapter()" style="padding: 7px 10px; font-size: 11px; background-color: #eef2ff; color: #4338ca; border-radius: 8px; font-weight: 700; white-space: nowrap;">+ 新增</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="window.tfApp.closeExamConfigModal()" style="padding: 6px 12px; font-size: 12px; color: #64748b; font-weight: 600;">取消</button>
+        <button onclick="window.tfApp.saveExamConfigModal()" style="padding: 6px 16px; font-size: 12px; background-color: #4f46e5; color: #ffffff; border-radius: 8px; font-weight: 700;">儲存設定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 4: 自訂停頓點快速標籤 -->
+  <div id="modal-add-tag" class="tf-modal-backdrop tf-hidden">
+    <div class="tf-modal-box">
+      <h3 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 800; color: #0f172a;">🏷️ 自訂停頓點快速標籤</h3>
+      <p id="add-tag-subtitle" style="margin: 0 0 12px 0; font-size: 12px; color: #94a3b8;">新增後將加入常用標籤庫並自動標記於該班</p>
+      <div style="font-size: 12px;">
+        <input 
+          id="input-custom-tag"
+          type="text"
+          maxlength="14"
+          placeholder="例如：發還考卷、第 4 題未講..."
+          style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; background-color: #f8fafc; font-weight: 700; color: #1e293b; outline: none;"
+        />
+        <div id="custom-tag-manage-list" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;"></div>
+      </div>
+      <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="window.tfApp.closeAddTagModal()" style="padding: 6px 12px; font-size: 12px; color: #64748b; font-weight: 600;">關閉</button>
+        <button onclick="window.tfApp.saveCustomTag()" style="padding: 6px 16px; font-size: 12px; background-color: #4f46e5; color: #ffffff; border-radius: 8px; font-weight: 700;">新增並套用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 5: 一鍵寄信聯絡小老師（單班通知 / 全學年密件副本群發） -->
+  <div id="modal-mail" class="tf-modal-backdrop tf-hidden">
+    <div class="tf-modal-box">
+      <div class="tf-row-between" style="align-items: center; margin-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: #0f172a;">✉️ 一鍵聯絡小老師</h3>
+        <button onclick="window.tfApp.closeMailModal()" style="font-size: 16px; color: #94a3b8; font-weight: 700; padding: 2px 6px;">✕</button>
+      </div>
+
+      <!-- 模式切換 -->
+      <div class="tf-seg-ctrl">
+        <button id="mail-mode-single" class="tf-seg-btn active" onclick="window.tfApp.setMailMode('single')">單班通知</button>
+        <button id="mail-mode-bcc" class="tf-seg-btn" onclick="window.tfApp.setMailMode('bcc')">全學年密件群發 (BCC)</button>
+      </div>
+
+      <!-- 單班通知區塊 -->
+      <div id="mail-single-panel" style="font-size: 12px; margin-bottom: 10px;">
+        <div style="margin-bottom: 8px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">選擇班級：</label>
+          <select id="mail-single-class" onchange="window.tfApp.onMailClassChange()" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 8px; background-color: #f8fafc; font-weight: 700; color: #334155;"></select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 6px;">
+          <div>
+            <label style="color: #64748b; font-weight: 700; font-size: 11px; display: block; margin-bottom: 3px;">小老師稱呼</label>
+            <input id="mail-single-name" type="text" placeholder="例：江同學" onchange="window.tfApp.saveAssistantInfo()" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 8px; font-size: 12px; background: #f8fafc;" />
+          </div>
+          <div>
+            <label style="color: #64748b; font-weight: 700; font-size: 11px; display: block; margin-bottom: 3px;">小老師 Email</label>
+            <input id="mail-single-email" type="email" placeholder="example@school.edu.tw" onchange="window.tfApp.saveAssistantInfo()" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 8px; font-size: 12px; background: #f8fafc;" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 全學年密件副本群發 (BCC) 區塊 -->
+      <div id="mail-bcc-panel" class="tf-hidden" style="font-size: 12px; margin-bottom: 10px;">
+        <div class="tf-row-between" style="align-items: center; margin-bottom: 6px;">
+          <span style="color: #64748b; font-weight: 700;">密件副本收件班級 (<span id="mail-bcc-count">0</span> 班)：</span>
+          <div style="display: flex; gap: 4px;">
+            <button onclick="window.tfApp.toggleAllBcc(true)" style="font-size: 10px; font-weight: 700; color: #4338ca; background: #eef2ff; padding: 3px 7px; border-radius: 6px;">全選</button>
+            <button onclick="window.tfApp.toggleAllBcc(false)" style="font-size: 10px; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 3px 7px; border-radius: 6px;">清空</button>
+          </div>
+        </div>
+        <div id="mail-bcc-list" class="tf-bcc-list"></div>
+        <p style="margin: 5px 0 0 0; font-size: 10px; color: #94a3b8;">💡 可直接在上方欄位填寫各班小老師 Email，群發時將自動放入密件副本 (BCC) 保護隱私。</p>
+      </div>
+
+      <!-- 快速信件範本 -->
+      <div style="margin-bottom: 10px;">
+        <span style="font-size: 11px; font-weight: 700; color: #64748b; display: block; margin-bottom: 5px;">套用快速範本：</span>
+        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+          <button onclick="window.tfApp.applyMailTemplate('progress')" style="font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; background: #eef2ff; color: #4338ca;">📖 進度與提醒</button>
+          <button onclick="window.tfApp.applyMailTemplate('exam')" style="font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; background: #fef3c7; color: #92400e;">🎯 段考範圍</button>
+          <button onclick="window.tfApp.applyMailTemplate('swap')" style="font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; background: #ecfdf5; color: #047857;">🔄 調課/補課</button>
+        </div>
+      </div>
+
+      <!-- 主旨與內文 -->
+      <div style="font-size: 12px;">
+        <div style="margin-bottom: 8px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 3px;">信件主旨：</label>
+          <input id="mail-subject" type="text" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 8px; font-size: 12px; font-weight: 600; color: #1e293b; background: #ffffff;" />
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 3px;">信件內容：</label>
+          <textarea id="mail-body" rows="5" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; font-size: 12px; color: #334155; background: #ffffff; resize: vertical; line-height: 1.5;"></textarea>
+        </div>
+      </div>
+
+      <!-- 寄出與複製操作 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px;">
+        <button onclick="window.tfApp.copyMailContent()" style="flex: 1; padding: 8px 10px; font-size: 12px; background-color: #f1f5f9; color: #334155; border-radius: 10px; font-weight: 700;">
+          📋 複製內容
+        </button>
+        <button onclick="window.tfApp.sendMailto()" style="flex: 1.4; padding: 8px 12px; font-size: 12px; background-color: #059669; color: #ffffff; border-radius: 10px; font-weight: 700;">
+          🚀 開啟郵件寄出
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 7: Google 雲端同步 (Google Apps Script + Google Drive) -->
+  <div id="modal-cloud-sync" class="tf-modal-backdrop tf-hidden">
+    <div class="tf-modal-box">
+      <div class="tf-row-between" style="align-items: center; margin-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: #0f172a;">☁️ Google 雲端同步</h3>
+        <button onclick="window.tfApp.closeCloudModal()" style="font-size: 16px; color: #94a3b8; font-weight: 700; padding: 2px 6px;">✕</button>
+      </div>
+      <p style="margin: 0 0 10px 0; font-size: 11px; color: #64748b; line-height: 1.5;">
+        透過您自己的 Google Apps Script 連結，將課表、章節進度、行事曆與小老師名單同步備份至您的 Google 雲端硬碟（<code>teachflow_sync.json</code>）。
+      </p>
+
+      <div style="font-size: 12px;">
+        <div style="margin-bottom: 8px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 3px;">Google Apps Script 網頁應用程式網址：</label>
+          <input id="input-cloud-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" onchange="window.tfApp.saveCloudConfig()" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 8px; background: #f8fafc; font-size: 11px;" />
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 3px;">同步安全金鑰（自訂密碼）：</label>
+          <input id="input-cloud-token" type="password" placeholder="例：kevin-teachflow-2026" onchange="window.tfApp.saveCloudConfig()" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 8px; background: #f8fafc; font-size: 12px;" />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <button id="btn-cloud-push" onclick="window.tfApp.pushToCloud()" style="padding: 8px; font-size: 12px; background-color: #4f46e5; color: #ffffff; border-radius: 10px; font-weight: 700;">
+            ⬆️ 上傳至雲端
+          </button>
+          <button id="btn-cloud-pull" onclick="window.tfApp.pullFromCloud()" style="padding: 8px; font-size: 12px; background-color: #059669; color: #ffffff; border-radius: 10px; font-weight: 700;">
+            ⬇️ 從雲端還原
+          </button>
+        </div>
+
+        <div id="cloud-sync-status" style="font-size: 11px; color: #64748b; background: #f8fafc; padding: 7px 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
+          尚未執行同步
+        </div>
+
+        <div style="border-top: 1px solid #f1f5f9; padding-top: 10px;">
+          <div class="tf-row-between" style="align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11px; font-weight: 700; color: #475569;">📋 Google Apps Script 後端程式碼</span>
+            <button onclick="window.tfApp.copyGasScript()" style="font-size: 11px; font-weight: 700; color: #4338ca; background: #eef2ff; padding: 4px 8px; border-radius: 6px;">一鍵複製腳本</button>
+          </div>
+          <pre id="gas-script-preview" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; font-size: 10px; font-family: monospace; color: #475569; max-height: 110px; overflow: auto; margin: 0;"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 6: 批次新增連假 / 停課區間 -->
+  <div id="modal-holiday-range" class="tf-modal-backdrop tf-hidden">
+    <div class="tf-modal-box">
+      <h3 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 800; color: #0f172a;">🏖️ 新增假日／連假停課區間</h3>
+      <p style="margin: 0 0 12px 0; font-size: 12px; color: #94a3b8;">設定區間後，系統將自動從各班段考倒數堂數中扣除。</p>
+      <div style="font-size: 12px;">
+        <div style="margin-bottom: 10px;">
+          <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">假日 / 活動名稱：</label>
+          <input id="input-hol-name" type="text" placeholder="例如：校慶補假、春節連假" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; background-color: #f8fafc; font-weight: 700;" />
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+          <div>
+            <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">開始日期：</label>
+            <input id="input-hol-start" type="date" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px; background-color: #f8fafc; font-weight: 600;" />
+          </div>
+          <div>
+            <label style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">結束日期：</label>
+            <input id="input-hol-end" type="date" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px; background-color: #f8fafc; font-weight: 600;" />
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="window.tfApp.closeHolidayRangeModal()" style="padding: 6px 12px; font-size: 12px; color: #64748b; font-weight: 600;">取消</button>
+        <button onclick="window.tfApp.saveHolidayRange()" style="padding: 6px 16px; font-size: 12px; background-color: #e11d48; color: #ffffff; border-radius: 8px; font-weight: 700;">加入行事曆並扣堂</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 原生零依賴核心引擎 (完全不需載入任何外部 JS，手機離線與 GitHub Pages 秒開) -->
+<script>
+(function() {
+  const STORAGE_KEY = 'teachflow_app_state_v4';
+  const LEGACY_KEYS = ['teachflow_app_state_v3', 'teachflow_app_state_v2'];
+  const weekDayMap = ['', '一', '二', '三', '四', '五', '六', '日'];
+  const DEFAULT_TAGS = ['講完例題', '待小考', '收學習單', '討論未完', '影片待播', '進度超前', '需補課'];
+
+  const memStore = {};
+  function safeGet(k) {
+    try {
+      if (window.localStorage) return window.localStorage.getItem(k);
+    } catch (e) {}
+    return memStore[k] || null;
+  }
+  function safeSet(k, v) {
+    try {
+      if (window.localStorage) {
+        window.localStorage.setItem(k, v);
+        return;
+      }
+    } catch (e) {}
+    memStore[k] = String(v);
+  }
+
+  function formatDateKey(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  const now = new Date();
+  const rawDay = now.getDay() === 0 ? 7 : now.getDay();
+  const todayKey = formatDateKey(now);
+
+  const DEFAULT_HOLIDAYS = {
+    '2026-09-25': { name: '中秋節放假' },
+    '2026-09-28': { name: '教師節/孔子誕辰' },
+    '2026-10-09': { name: '國慶日補假' },
+    '2026-10-26': { name: '臺灣光復節補假' },
+    '2026-12-07': { name: '校慶補假' },
+    '2027-01-01': { name: '元旦放假' }
+  };
+
+  const DEFAULT_MEMOS = {
+    '2026-11-25': [{ id: 1, text: '第二次期中考 (Day 1)' }],
+    '2026-11-26': [{ id: 2, text: '第二次期中考 (Day 2)' }],
+    '2026-12-05': [{ id: 3, text: '學校校慶活動' }],
+    '2027-01-18': [{ id: 4, text: '期末考週開始' }]
+  };
+
+  const GAS_SCRIPT_TEMPLATE = [
+    'const FILE_NAME = "teachflow_sync.json";',
+    'const SECRET_TOKEN = "請改成您自訂的安全金鑰";',
+    '',
+    'function getOrCreateFile() {',
+    '  const files = DriveApp.getFilesByName(FILE_NAME);',
+    '  if (files.hasNext()) return files.next();',
+    '  return DriveApp.createFile(FILE_NAME, "{}", MimeType.PLAIN_TEXT);',
+    '}',
+    '',
+    'function doGet(e) {',
+    '  if (!e || e.parameter.token !== SECRET_TOKEN) {',
+    '    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Invalid token" })).setMimeType(ContentService.MimeType.JSON);',
+    '  }',
+    '  const raw = getOrCreateFile().getBlob().getDataAsString() || "{}";',
+    '  return ContentService.createTextOutput(JSON.stringify({ ok: true, data: JSON.parse(raw) })).setMimeType(ContentService.MimeType.JSON);',
+    '}',
+    '',
+    'function doPost(e) {',
+    '  const payload = JSON.parse(e.postData.contents || "{}");',
+    '  if (payload.token !== SECRET_TOKEN) {',
+    '    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Invalid token" })).setMimeType(ContentService.MimeType.JSON);',
+    '  }',
+    '  getOrCreateFile().setContent(JSON.stringify(payload.data || {}));',
+    '  return ContentService.createTextOutput(JSON.stringify({ ok: true, updatedAt: new Date().toISOString() })).setMimeType(ContentService.MimeType.JSON);',
+    '}'
+  ].join('\n');
+
+  const DEFAULT_EXAM_CHAPTERS = [
+    '第 3 章 政府組成與運作',
+    '第 4 章 公民參與及民主治理'
+  ];
+
+  const state = {
+    activeTab: 'today',
+    selectedDay: (rawDay >= 1 && rawDay <= 5) ? rawDay : 1,
+    examChapters: DEFAULT_EXAM_CHAPTERS.slice(),
+    examStartDate: '2026-11-25',
+    examEndDate: '2026-11-26',
+    apiKey: safeGet('gemini_user_api_key') || '',
+    cloudUrl: safeGet('teachflow_cloud_url') || '',
+    cloudToken: safeGet('teachflow_cloud_token') || '',
+    lastSyncTime: safeGet('teachflow_last_sync') || '',
+    tempImportData: null,
+    editingCell: { day: 1, period: 1 },
+    addingTagForClass: null,
+    pauseTagLibrary: DEFAULT_TAGS.slice(),
+    calendarMonth: { year: now.getFullYear(), month: now.getMonth() },
+    selectedCalDate: todayKey,
+    holidays: JSON.parse(JSON.stringify(DEFAULT_HOLIDAYS)),
+    calendarMemos: JSON.parse(JSON.stringify(DEFAULT_MEMOS)),
+    mailModal: {
+      mode: 'single',
+      targetClass: '101 班',
+      bccSelected: {}
+    },
+    weeklySchedule: {
+      1: { 1: '101 班', 2: '', 3: '103 班', 4: '', 5: '105 班', 6: '', 7: '' },
+      2: { 1: '', 2: '101 班', 3: '', 4: '103 班', 5: '', 6: '', 7: '' },
+      3: { 1: '105 班', 2: '', 3: '101 班', 4: '', 5: '', 6: '', 7: '' },
+      4: { 1: '', 2: '103 班', 3: '', 4: '105 班', 5: '101 班', 6: '', 7: '' },
+      5: { 1: '103 班', 2: '', 3: '105 班', 4: '', 5: '', 6: '', 7: '' }
+    },
+    classesData: {
+      '101 班': { chapter: '第 4 章 公民參與及民主治理', completedChapters: ['第 3 章 政府組成與運作'], page: 24, memo: '抽查課本重點', manualOffset: 0, pauseTags: ['講完例題'], assistantName: '', assistantEmail: '' },
+      '103 班': { chapter: '第 3 章 政府組成與運作', completedChapters: [], page: 20, memo: '習題第 3 題待檢討', manualOffset: 0, pauseTags: ['待小考'], assistantName: '', assistantEmail: '' },
+      '105 班': { chapter: '第 3 章 政府組成與運作', completedChapters: [], page: 18, memo: '分組學習單繳交', manualOffset: 0, pauseTags: ['收學習單'], assistantName: '', assistantEmail: '' }
+    },
+    overrideSchedule: {}
+  };
+
+  function ensureClassFields() {
+    const keys = Object.keys(state.classesData);
+    for (let i = 0; i < keys.length; i++) {
+      const c = state.classesData[keys[i]];
+      if (!Array.isArray(c.pauseTags)) c.pauseTags = [];
+      if (!Array.isArray(c.completedChapters)) c.completedChapters = [];
+      if (typeof c.assistantName !== 'string') c.assistantName = '';
+      if (typeof c.assistantEmail !== 'string') c.assistantEmail = '';
+      if (typeof c.manualOffset !== 'number') c.manualOffset = 0;
+    }
+  }
+
+  function loadStorage() {
+    let raw = safeGet(STORAGE_KEY);
+    if (!raw) {
+      for (let i = 0; i < LEGACY_KEYS.length; i++) {
+        raw = safeGet(LEGACY_KEYS[i]);
+        if (raw) break;
+      }
+    }
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.weeklySchedule) state.weeklySchedule = parsed.weeklySchedule;
+        if (parsed.classesData) state.classesData = parsed.classesData;
+        if (parsed.overrideSchedule) state.overrideSchedule = parsed.overrideSchedule;
+        if (Array.isArray(parsed.examChapters) && parsed.examChapters.length > 0) {
+          state.examChapters = parsed.examChapters;
+        }
+        if (parsed.examStartDate) state.examStartDate = parsed.examStartDate;
+        else if (parsed.examDate) state.examStartDate = parsed.examDate;
+        if (parsed.examEndDate) state.examEndDate = parsed.examEndDate;
+        else if (parsed.examDate) state.examEndDate = parsed.examDate;
+        if (parsed.holidays) state.holidays = parsed.holidays;
+        if (parsed.calendarMemos) state.calendarMemos = parsed.calendarMemos;
+        if (Array.isArray(parsed.pauseTagLibrary) && parsed.pauseTagLibrary.length > 0) {
+          state.pauseTagLibrary = parsed.pauseTagLibrary;
+        }
+      } catch (e) {}
+    }
+    ensureClassFields();
+  }
+
+  function saveStorage() {
+    safeSet(STORAGE_KEY, JSON.stringify({
+      weeklySchedule: state.weeklySchedule,
+      classesData: state.classesData,
+      overrideSchedule: state.overrideSchedule,
+      examChapters: state.examChapters,
+      examStartDate: state.examStartDate,
+      examEndDate: state.examEndDate,
+      holidays: state.holidays,
+      calendarMemos: state.calendarMemos,
+      pauseTagLibrary: state.pauseTagLibrary
+    }));
+  }
+
+  let toastTimer = null;
+  function showToast(msg, icon) {
+    const box = document.getElementById('toast-box');
+    const iconEl = document.getElementById('toast-icon');
+    const msgEl = document.getElementById('toast-msg');
+    if (!box) return;
+    iconEl.textContent = icon || '✅';
+    msgEl.textContent = msg;
+    box.classList.remove('tf-hidden');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() {
+      box.classList.add('tf-hidden');
+    }, 2600);
+  }
+
+  function esc(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escJs(str) {
+    return String(str == null ? '' : str)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'");
+  }
+
+  function formatExamRange() {
+    if (!state.examStartDate) return '';
+    if (!state.examEndDate || state.examEndDate === state.examStartDate) return state.examStartDate;
+    if (state.examStartDate.slice(0, 7) === state.examEndDate.slice(0, 7)) {
+      return state.examStartDate + ' ~ ' + state.examEndDate.slice(8);
+    }
+    return state.examStartDate + ' ~ ' + state.examEndDate;
+  }
+
+  function isDateInExam(dateKey) {
+    if (!state.examStartDate) return false;
+    const endKey = state.examEndDate || state.examStartDate;
+    return dateKey >= state.examStartDate && dateKey <= endKey;
+  }
+
+  function calcDaysToExam() {
+    if (!state.examStartDate) return 0;
+    const target = new Date(state.examStartDate + 'T00:00:00');
+    const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffMs = target.getTime() - todayMid.getTime();
+    if (isNaN(diffMs)) return 0;
+    return Math.max(0, Math.ceil(diffMs / 86400000));
+  }
+
+  // 自動計算「從今日起到段考首日前一天」扣除假日與連假後，各班實際授課堂數
+  function calcAutoRemainingClasses(clsName) {
+    if (!state.examStartDate) return 0;
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(state.examStartDate + 'T00:00:00');
+    if (isNaN(end.getTime()) || start >= end) return 0;
+
+    let count = 0;
+    const cursor = new Date(start.getTime());
+    while (cursor < end) {
+      const dateKey = formatDateKey(cursor);
+      const jsDow = cursor.getDay(); // 0=Sun, 1=Mon...6=Sat
+      if (jsDow >= 1 && jsDow <= 5 && !state.holidays[dateKey]) {
+        const daySched = state.weeklySchedule[jsDow] || {};
+        for (let p = 1; p <= 7; p++) {
+          const overrideKey = dateKey + '_d' + jsDow + '_p' + p;
+          const assigned = state.overrideSchedule[overrideKey] || daySched[p];
+          if (assigned === clsName) {
+            count++;
+          }
+        }
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return count;
+  }
+
+  function getEffectiveRemainingClasses(clsName) {
+    const autoCount = calcAutoRemainingClasses(clsName);
+    const offset = (state.classesData[clsName] && Number(state.classesData[clsName].manualOffset)) || 0;
+    return Math.max(0, autoCount + offset);
+  }
+
+  function countDeductedWeekdaysToExam() {
+    if (!state.examStartDate) return 0;
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(state.examStartDate + 'T00:00:00');
+    if (isNaN(end.getTime()) || start >= end) return 0;
+    let holCount = 0;
+    const cursor = new Date(start.getTime());
+    while (cursor < end) {
+      const jsDow = cursor.getDay();
+      if (jsDow >= 1 && jsDow <= 5 && state.holidays[formatDateKey(cursor)]) {
+        holCount++;
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return holCount;
+  }
+
+  function getClassChapterStats(clsName) {
+    const data = state.classesData[clsName] || {};
+    const doneArr = Array.isArray(data.completedChapters) ? data.completedChapters : [];
+    const total = state.examChapters.length;
+    let doneCount = 0;
+    for (let i = 0; i < state.examChapters.length; i++) {
+      if (doneArr.indexOf(state.examChapters[i]) !== -1) doneCount++;
+    }
+    const leftCount = Math.max(0, total - doneCount);
+    const pct = total > 0 ? Math.min(100, Math.round((doneCount / total) * 100)) : 0;
+    return { total: total, doneCount: doneCount, leftCount: leftCount, pct: pct };
+  }
+
+  function formatChapterPaceLabel(leftChapters, remainingClasses) {
+    if (leftChapters <= 0) return '範圍已完成 ✅';
+    if (remainingClasses <= 0) return '尚餘 ' + leftChapters + ' 章 (無餘課)';
+    const perChapter = (remainingClasses / leftChapters).toFixed(1);
+    return '每章可用 ' + perChapter + ' 堂';
+  }
+
+  function getChapterPaceBadgeClass(leftChapters, remainingClasses) {
+    if (leftChapters <= 0) return 'pace-green';
+    if (remainingClasses <= 0) return 'pace-rose';
+    const perChapter = remainingClasses / leftChapters;
+    if (perChapter < 1.5) return 'pace-rose';
+    if (perChapter < 2.5) return 'pace-amber';
+    return 'pace-green';
+  }
+
+  function getCountdownBadgeClass(rem) {
+    if (rem <= 1) return 'pace-rose';
+    if (rem <= 3) return 'pace-amber';
+    return 'pace-indigo';
+  }
+
+  function getSelectedDayInfo() {
+    const dateKey = formatDateKey(now);
+    const scheduleDay = state.weeklySchedule[state.selectedDay] || {};
+    const list = [];
+
+    for (let p = 1; p <= 7; p++) {
+      let cls = scheduleDay[p];
+      let isSwapped = false;
+      const overrideKey = dateKey + '_d' + state.selectedDay + '_p' + p;
+      if (state.overrideSchedule[overrideKey]) {
+        cls = state.overrideSchedule[overrideKey];
+        isSwapped = true;
+      }
+      if (cls && cls !== '停課(公假/演講)' && state.classesData[cls]) {
+        list.push({
+          period: p,
+          className: cls,
+          subject: '公民與社會',
+          isSwapped: isSwapped
+        });
+      }
+    }
+
+    return {
+      dateKey: dateKey,
+      todayDateString: (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日',
+      weekDayName: weekDayMap[state.selectedDay] || '一',
+      schedule: list
+    };
+  }
+
+  function renderDaySwitcher() {
+    const container = document.getElementById('day-switcher-btns');
+    if (!container) return;
+    let html = '';
+    for (let d = 1; d <= 5; d++) {
+      const activeCls = (state.selectedDay === d) ? ' active' : '';
+      html += '<button class="tf-day-btn' + activeCls + '" onclick="window.tfApp.selectDay(' + d + ')">週' + weekDayMap[d] + '</button>';
+    }
+    container.innerHTML = html;
+  }
+
+  function renderToday() {
+    renderDaySwitcher();
+    const info = getSelectedDayInfo();
+    const dateEl = document.getElementById('header-date-str');
+    const countEl = document.getElementById('header-class-count');
+    const titleEl = document.getElementById('today-list-title');
+
+    if (dateEl) dateEl.textContent = info.todayDateString + ' · 週' + info.weekDayName;
+    if (countEl) countEl.textContent = '當日 ' + info.schedule.length + ' 堂課';
+    if (titleEl) titleEl.textContent = '週' + info.weekDayName + '授課清單';
+
+    const container = document.getElementById('today-list-container');
+    if (!container) return;
+
+    if (info.schedule.length === 0) {
+      container.innerHTML =
+        '<div class="tf-card" style="text-align: center; padding: 3rem 1.5rem;">' +
+          '<div style="font-size: 32px; margin-bottom: 8px;">☕</div>' +
+          '<p style="font-size: 14px; font-weight: 700; color: #334155; margin: 0;">本日沒有安排課堂</p>' +
+          '<p style="font-size: 12px; color: #94a3b8; margin: 6px 0 0 0;">好好備課、批改作業或休息一下！</p>' +
+        '</div>';
+      return;
+    }
+
+    let html = '';
+    for (let i = 0; i < info.schedule.length; i++) {
+      const item = info.schedule[i];
+      const clsData = state.classesData[item.className] || { chapter: '', page: 1, memo: '', manualOffset: 0, pauseTags: [] };
+      const safeCls = esc(item.className);
+      const jsCls = escJs(item.className);
+      const remaining = getEffectiveRemainingClasses(item.className);
+      const countBadgeCls = getCountdownBadgeClass(remaining);
+      const activeTags = Array.isArray(clsData.pauseTags) ? clsData.pauseTags : [];
+
+      let tagsHtml = '<div class="tf-tags-wrap"><span style="font-size: 10px; font-weight: 700; color: #94a3b8;">停頓點：</span>';
+      for (let t = 0; t < state.pauseTagLibrary.length; t++) {
+        const tag = state.pauseTagLibrary[t];
+        const isOn = activeTags.indexOf(tag) !== -1;
+        tagsHtml += '<button class="tf-tag-chip' + (isOn ? ' active' : '') + '" onclick="window.tfApp.togglePauseTag(\'' + jsCls + '\', \'' + escJs(tag) + '\')">' + esc(tag) + '</button>';
+      }
+      tagsHtml += '<button class="tf-tag-add-btn" onclick="window.tfApp.openAddTagModal(\'' + jsCls + '\')">+ 自訂</button></div>';
+
+      const hasEmail = clsData.assistantEmail && clsData.assistantEmail.trim().length > 0;
+      const mailLabel = hasEmail
+        ? ('✉️ 聯絡小老師' + (clsData.assistantName ? ' (' + esc(clsData.assistantName) + ')' : ''))
+        : '✉️ 設定 / 聯絡小老師';
+
+      html +=
+        '<div class="tf-card">' +
+          (item.isSwapped ? '<div class="tf-swap-tag">臨時調課</div>' : '') +
+          '<div class="tf-row-between" style="margin-bottom: 10px; align-items: center;">' +
+            '<div class="tf-row-center" style="gap: 8px;">' +
+              '<span class="tf-period-pill">第 ' + item.period + ' 節</span>' +
+              '<span style="font-size: 16px; font-weight: 800; color: #0f172a;">' + safeCls + '</span>' +
+              '<span style="font-size: 12px; color: #94a3b8; font-weight: 500;">' + esc(item.subject) + '</span>' +
+            '</div>' +
+            '<span class="' + countBadgeCls + '" style="font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 999px;" title="已自動扣除行事曆假日與連假">' +
+              '考前倒數 ' + remaining + ' 堂' +
+            '</span>' +
+          '</div>' +
+
+          '<div style="margin-bottom: 10px;">' +
+            '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">' +
+              '<input type="text" class="tf-input-chapter" value="' + esc(clsData.chapter) + '" ' +
+                'placeholder="點擊輸入或點選下方段考章節..." ' +
+                'onchange="window.tfApp.updateChapter(\'' + jsCls + '\', this.value)" />' +
+              (clsData.chapter ? '<button onclick="window.tfApp.markCurrentChapterDone(\'' + jsCls + '\')" style="font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; background: #d1fae5; color: #047857; white-space: nowrap;">✓ 本章教完</button>' : '') +
+            '</div>' +
+            (state.examChapters.length > 0 ? (function() {
+              let chBtns = '<div style="display: flex; flex-wrap: wrap; gap: 4px;">';
+              const doneArr = Array.isArray(clsData.completedChapters) ? clsData.completedChapters : [];
+              for (let c = 0; c < state.examChapters.length; c++) {
+                const chName = state.examChapters[c];
+                const isDone = doneArr.indexOf(chName) !== -1;
+                const isCur = clsData.chapter === chName;
+                const pillCls = isDone ? 'tf-ch-pill done' : (isCur ? 'tf-ch-pill current' : 'tf-ch-pill');
+                chBtns += '<button class="' + pillCls + '" onclick="window.tfApp.selectClassChapter(\'' + jsCls + '\', \'' + escJs(chName) + '\')">' +
+                  (isDone ? '✓ ' : (isCur ? '▶ ' : '')) + esc(chName) + '</button>';
+              }
+              return chBtns + '</div>';
+            })() : '') +
+          '</div>' +
+
+          '<div class="tf-stepper-box">' +
+            '<div>' +
+              '<span style="font-size: 10px; font-weight: 700; color: #94a3b8; display: block;">目前課本頁碼書籤</span>' +
+              '<div style="display: flex; align-items: baseline; gap: 4px; margin-top: 2px;">' +
+                '<span style="font-size: 12px; color: #94a3b8; font-weight: 700;">P.</span>' +
+                '<input type="number" class="tf-page-input" value="' + Number(clsData.page || 0) + '" ' +
+                  'onchange="window.tfApp.setPage(\'' + jsCls + '\', this.value)" />' +
+                '<span style="font-size: 11px; color: #94a3b8;">· 目標 ' + state.examChapters.length + ' 章</span>' +
+              '</div>' +
+            '</div>' +
+
+            '<div style="display: flex; align-items: center; gap: 6px;">' +
+              '<button class="tf-step-btn-minus" onclick="window.tfApp.adjustPage(\'' + jsCls + '\', -1)">-</button>' +
+              '<button class="tf-step-btn-plus1" onclick="window.tfApp.adjustPage(\'' + jsCls + '\', 1)">+1</button>' +
+              '<button class="tf-step-btn-plus2" onclick="window.tfApp.adjustPage(\'' + jsCls + '\', 2)">+2</button>' +
+            '</div>' +
+          '</div>' +
+
+          tagsHtml +
+
+          '<div style="margin-top: 10px;">' +
+            '<input type="text" class="tf-memo-input" value="' + esc(clsData.memo) + '" ' +
+              'placeholder="下節備忘（如：抽查學習單、第 3 題待解）..." ' +
+              'onchange="window.tfApp.updateMemo(\'' + jsCls + '\', this.value)" />' +
+          '</div>' +
+
+          '<div class="tf-card-footer-actions">' +
+            '<span style="font-size: 10px; color: #94a3b8;">' + (activeTags.length > 0 ? '已標記：' + esc(activeTags.join('、')) : '尚未標記停頓點') + '</span>' +
+            '<button class="tf-mail-btn" onclick="window.tfApp.openMailModal(\'' + jsCls + '\', \'single\')">' + mailLabel + '</button>' +
+          '</div>' +
+        '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  function renderCalendar() {
+    const titleEl = document.getElementById('cal-month-title');
+    const gridEl = document.getElementById('cal-grid-container');
+    const detailEl = document.getElementById('cal-day-detail');
+    if (!gridEl || !detailEl) return;
+
+    const y = state.calendarMonth.year;
+    const m = state.calendarMonth.month; // 0-11
+    if (titleEl) titleEl.textContent = y + ' 年 ' + (m + 1) + ' 月';
+
+    const dows = ['日', '一', '二', '三', '四', '五', '六'];
+    let html = '';
+    for (let i = 0; i < 7; i++) {
+      const isWknd = (i === 0 || i === 6);
+      html += '<div class="tf-cal-dow' + (isWknd ? ' weekend' : '') + '">' + dows[i] + '</div>';
+    }
+
+    const firstDay = new Date(y, m, 1);
+    const startOffset = firstDay.getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+    for (let b = 0; b < startOffset; b++) {
+      html += '<div class="tf-cal-cell is-empty"></div>';
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dObj = new Date(y, m, day);
+      const dKey = formatDateKey(dObj);
+      const dow = dObj.getDay();
+      const isWeekend = (dow === 0 || dow === 6);
+      const hol = state.holidays[dKey];
+      const memos = state.calendarMemos[dKey] || [];
+      const isExam = isDateInExam(dKey);
+      const isToday = (dKey === todayKey);
+      const isSelected = (dKey === state.selectedCalDate);
+
+      let cls = 'tf-cal-cell';
+      if (hol) cls += ' is-holiday';
+      else if (isExam) cls += ' is-exam';
+      else if (isWeekend) cls += ' is-weekend';
+      if (isToday) cls += ' is-today';
+      if (isSelected) cls += ' is-selected';
+
+      let dots = '';
+      if (hol) dots += '<span class="tf-dot-hol"></span>';
+      if (isExam) dots += '<span class="tf-dot-exam"></span>';
+      if (memos.length > 0) dots += '<span class="tf-dot-memo"></span>';
+
+      let miniLabel = '';
+      if (hol) miniLabel = '<span class="tf-cal-tag-tiny">' + esc(hol.name.slice(0, 3)) + '</span>';
+      else if (isExam) miniLabel = '<span class="tf-cal-tag-tiny">段考</span>';
+
+      html +=
+        '<div class="' + cls + '" onclick="window.tfApp.selectCalDate(\'' + dKey + '\')">' +
+          '<span class="tf-cal-num">' + day + '</span>' +
+          (dots ? '<div class="tf-cal-dots">' + dots + '</div>' : '') +
+          miniLabel +
+        '</div>';
+    }
+    gridEl.innerHTML = html;
+
+    // 渲染選定日期詳情面板
+    const selDate = state.selectedCalDate || todayKey;
+    const selObj = new Date(selDate + 'T00:00:00');
+    const selJsDow = selObj.getDay();
+    const selDowMap = ['日', '一', '二', '三', '四', '五', '六'];
+    const selHol = state.holidays[selDate];
+    const selMemos = state.calendarMemos[selDate] || [];
+    const selIsExam = isDateInExam(selDate);
+
+    let statusBadge = '<span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #d1fae5; color: #047857;">正常上課日</span>';
+    if (selHol) {
+      statusBadge = '<span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #ffe4e6; color: #be123c;">放假停課 · ' + esc(selHol.name) + '</span>';
+    } else if (selIsExam) {
+      statusBadge = '<span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #fef3c7; color: #92400e;">🎯 段考日</span>';
+    } else if (selJsDow === 0 || selJsDow === 6) {
+      statusBadge = '<span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #f1f5f9; color: #64748b;">週末</span>';
+    }
+
+    // 當日預排課表
+    let dayClassesHtml = '';
+    if (selJsDow >= 1 && selJsDow <= 5 && !selHol && !selIsExam) {
+      const sched = state.weeklySchedule[selJsDow] || {};
+      const items = [];
+      for (let p = 1; p <= 7; p++) {
+        const overrideKey = selDate + '_d' + selJsDow + '_p' + p;
+        const cName = state.overrideSchedule[overrideKey] || sched[p];
+        if (cName && cName !== '停課(公假/演講)') {
+          items.push('第' + p + '節 ' + esc(cName));
+        }
+      }
+      dayClassesHtml = items.length > 0
+        ? ('<div style="font-size: 11px; color: #475569; margin-top: 8px; background: #f8fafc; padding: 6px 10px; border-radius: 8px;">📚 排課：' + items.join('、') + '</div>')
+        : '<div style="font-size: 11px; color: #94a3b8; margin-top: 8px;">本日無常規授課</div>';
+    }
+
+    let memosHtml = '';
+    if (selMemos.length > 0) {
+      memosHtml = '<div style="margin-top: 10px; space-y: 4px;">';
+      for (let i = 0; i < selMemos.length; i++) {
+        const mm = selMemos[i];
+        memosHtml +=
+          '<div style="display: flex; justify-content: space-between; align-items: center; background: #eef2ff; color: #3730a3; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-bottom: 5px;">' +
+            '<span>📌 ' + esc(mm.text) + '</span>' +
+            '<button onclick="window.tfApp.deleteCalMemo(\'' + selDate + '\', ' + mm.id + ')" style="color: #e11d48; font-weight: 800; font-size: 13px; padding: 0 4px;">×</button>' +
+          '</div>';
+      }
+      memosHtml += '</div>';
+    }
+
+    detailEl.innerHTML =
+      '<div class="tf-row-between" style="align-items: center;">' +
+        '<div>' +
+          '<span style="font-size: 14px; font-weight: 800; color: #0f172a;">' + selDate + ' (週' + selDowMap[selJsDow] + ')</span>' +
+        '</div>' +
+        statusBadge +
+      '</div>' +
+      dayClassesHtml +
+      '<div style="margin-top: 10px; display: flex; gap: 6px; align-items: center;">' +
+        '<input id="cal-holiday-name-input" type="text" value="' + esc(selHol ? selHol.name : '') + '" placeholder="輸入放假名稱（如：校慶補假）..." ' +
+          'style="flex: 1; font-size: 12px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 8px; background: #f8fafc;" />' +
+        '<button onclick="window.tfApp.toggleCalHoliday(\'' + selDate + '\')" style="font-size: 11px; font-weight: 700; padding: 6px 10px; border-radius: 8px; ' +
+          (selHol ? 'background: #f1f5f9; color: #475569;' : 'background: #ffe4e6; color: #be123c;') + '">' +
+          (selHol ? '取消放假' : '🚫 設為放假') +
+        '</button>' +
+      '</div>' +
+      memosHtml +
+      '<div style="margin-top: 10px; display: flex; gap: 6px; align-items: center; padding-top: 10px; border-top: 1px solid #f1f5f9;">' +
+        '<input id="cal-memo-input" type="text" placeholder="新增當日教師行事曆記事（如：交段考卷）..." ' +
+          'style="flex: 1; font-size: 12px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 9px; background: #ffffff;" />' +
+        '<button onclick="window.tfApp.addCalMemo(\'' + selDate + '\')" style="font-size: 11px; font-weight: 700; padding: 7px 12px; border-radius: 8px; background: #4f46e5; color: #ffffff;">+ 記事</button>' +
+      '</div>';
+  }
+
+  function renderMatrix() {
+    const dateLbl = document.getElementById('exam-date-label');
+    const targetLbl = document.getElementById('exam-target-label');
+    const daysLbl = document.getElementById('exam-days-label');
+    const holInfoLbl = document.getElementById('exam-holiday-deduct-info');
+    if (dateLbl) dateLbl.textContent = formatExamRange();
+    if (targetLbl) targetLbl.textContent = '共 ' + state.examChapters.length + ' 個章節';
+    if (daysLbl) daysLbl.textContent = calcDaysToExam();
+    const bannerPillsEl = document.getElementById('exam-chapters-banner-pills');
+    if (bannerPillsEl) {
+      let bp = '';
+      for (let k = 0; k < state.examChapters.length; k++) {
+        bp += '<span style="font-size: 10px; background: rgba(255,255,255,0.16); color: #ffffff; padding: 2px 7px; border-radius: 6px; font-weight: 600;">' + esc(state.examChapters[k]) + '</span>';
+      }
+      bannerPillsEl.innerHTML = bp;
+    }
+    if (holInfoLbl) {
+      const holCount = countDeductedWeekdaysToExam();
+      holInfoLbl.textContent = holCount > 0
+        ? ('已自動扣除考前 ' + holCount + ' 天平日放假/連假')
+        : '自動扣除行事曆假日與連假';
+    }
+
+    const container = document.getElementById('matrix-list-container');
+    if (!container) return;
+
+    let html = '';
+    const classNames = Object.keys(state.classesData);
+    for (let i = 0; i < classNames.length; i++) {
+      const clsName = classNames[i];
+      const safeCls = esc(clsName);
+      const jsCls = escJs(clsName);
+      const data = state.classesData[clsName];
+      const autoCount = calcAutoRemainingClasses(clsName);
+      const remaining = getEffectiveRemainingClasses(clsName);
+      const offset = Number(data.manualOffset || 0);
+      const chStats = getClassChapterStats(clsName);
+      const paceLabel = formatChapterPaceLabel(chStats.leftCount, remaining);
+      const badgeClass = getChapterPaceBadgeClass(chStats.leftCount, remaining);
+      const pct = chStats.pct;
+      const doneArr = Array.isArray(data.completedChapters) ? data.completedChapters : [];
+      const activeTags = Array.isArray(data.pauseTags) ? data.pauseTags : [];
+
+      let tagBadgesHtml = '';
+      if (activeTags.length > 0) {
+        tagBadgesHtml = '<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;">';
+        for (let t = 0; t < activeTags.length; t++) {
+          tagBadgesHtml += '<span class="tf-tag-mini-badge">🏷️ ' + esc(activeTags[t]) + '</span>';
+        }
+        tagBadgesHtml += '</div>';
+      }
+
+      html +=
+        '<div class="tf-card">' +
+          '<div class="tf-row-between">' +
+            '<div>' +
+              '<span style="font-size: 12px; font-weight: 800; color: #4338ca; background-color: #eef2ff; padding: 3px 8px; border-radius: 6px; border: 1px solid #e0e7ff;">' + safeCls + '</span>' +
+              '<p style="font-size: 12px; font-weight: 600; color: #1e293b; margin: 8px 0 0 0;">目前：' + esc(data.chapter || '未指定') + ' (P.' + Number(data.page || 0) + ')</p>' +
+            '</div>' +
+            '<span class="' + badgeClass + '" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap;">' +
+              paceLabel +
+            '</span>' +
+          '</div>' +
+
+          (state.examChapters.length > 0 ? (function() {
+            let cp = '<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;">';
+            for (let c = 0; c < state.examChapters.length; c++) {
+              const ch = state.examChapters[c];
+              const isDone = doneArr.indexOf(ch) !== -1;
+              cp += '<button class="tf-ch-pill' + (isDone ? ' done' : '') + '" onclick="window.tfApp.toggleClassChapterDone(\'' + jsCls + '\', \'' + escJs(ch) + '\')">' +
+                (isDone ? '☑ ' : '☐ ') + esc(ch) + '</button>';
+            }
+            return cp + '</div>';
+          })() : '') +
+
+          tagBadgesHtml +
+
+          '<div style="margin-top: 10px;">' +
+            '<div class="tf-row-between" style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px;">' +
+              '<span>章節完成 ' + chStats.doneCount + ' / ' + chStats.total + ' 章 (' + pct + '%)</span>' +
+              '<span>尚餘 ' + chStats.leftCount + ' 章</span>' +
+            '</div>' +
+            '<div class="tf-progress-track">' +
+              '<div class="tf-progress-bar" style="width: ' + pct + '%;"></div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="tf-row-between" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #f1f5f9; font-size: 12px; align-items: center;">' +
+            '<div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">' +
+              '<span style="color: #64748b;">扣假實質尚有：</span>' +
+              '<button class="tf-mini-btn" onclick="window.tfApp.adjustRemaining(\'' + jsCls + '\', -1)">-</button>' +
+              '<strong style="color: #1e293b; padding: 0 2px;">' + remaining + ' 堂</strong>' +
+              '<button class="tf-mini-btn" onclick="window.tfApp.adjustRemaining(\'' + jsCls + '\', 1)">+</button>' +
+              (offset !== 0
+                ? '<button onclick="window.tfApp.resetRemainingOffset(\'' + jsCls + '\')" style="font-size: 10px; color: #4338ca; background: #eef2ff; padding: 2px 6px; border-radius: 5px; font-weight: 700;">重算(' + autoCount + ')</button>'
+                : '<span style="font-size: 10px; color: #94a3b8;">(自動)</span>') +
+            '</div>' +
+            '<button class="tf-mail-btn" style="padding: 3px 8px; font-size: 11px;" onclick="window.tfApp.openMailModal(\'' + jsCls + '\', \'single\')">✉️ 聯絡</button>' +
+          '</div>' +
+        '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  function renderSchedule() {
+    const grid = document.getElementById('schedule-grid-container');
+    if (!grid) return;
+
+    let html = '<div class="tf-grid-head">節</div>';
+    const days = ['一', '二', '三', '四', '五'];
+    for (let i = 0; i < days.length; i++) {
+      html += '<div class="tf-grid-head">' + days[i] + '</div>';
+    }
+
+    for (let p = 1; p <= 7; p++) {
+      html += '<div class="tf-grid-period">' + p + '</div>';
+      for (let d = 1; d <= 5; d++) {
+        const val = (state.weeklySchedule[d] && state.weeklySchedule[d][p]) ? state.weeklySchedule[d][p] : '';
+        const clsStyle = val ? 'has-cls' : 'empty-cls';
+        html +=
+          '<div class="tf-grid-cell ' + clsStyle + '" onclick="window.tfApp.openEditCellModal(' + d + ', ' + p + ')">' +
+            esc(val || '-') +
+          '</div>';
+      }
+    }
+    grid.innerHTML = html;
+  }
+
+  function renderMailBccList() {
+    const listEl = document.getElementById('mail-bcc-list');
+    const countEl = document.getElementById('mail-bcc-count');
+    if (!listEl) return;
+
+    const clsNames = Object.keys(state.classesData);
+    let html = '';
+    let selectedCount = 0;
+
+    for (let i = 0; i < clsNames.length; i++) {
+      const cls = clsNames[i];
+      const safeCls = esc(cls);
+      const jsCls = escJs(cls);
+      const data = state.classesData[cls];
+      const isChecked = !!state.mailModal.bccSelected[cls];
+      if (isChecked) selectedCount++;
+
+      html +=
+        '<div class="tf-bcc-row">' +
+          '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="window.tfApp.toggleBccClass(\'' + jsCls + '\', this.checked)" />' +
+          '<span style="font-weight: 800; color: #3730a3; min-width: 52px;">' + safeCls + '</span>' +
+          '<input type="email" value="' + esc(data.assistantEmail || '') + '" placeholder="填寫小老師 Email..." ' +
+            'onchange="window.tfApp.updateBccEmail(\'' + jsCls + '\', this.value)" ' +
+            'style="flex: 1; font-size: 11px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 6px; background: #ffffff;" />' +
+        '</div>';
+    }
+    listEl.innerHTML = html;
+    if (countEl) countEl.textContent = selectedCount;
+  }
+
+  function renderAll() {
+    renderToday();
+    renderCalendar();
+    renderMatrix();
+    renderSchedule();
+    const apiInput = document.getElementById('input-api-key');
+    if (apiInput && apiInput.value !== state.apiKey) {
+      apiInput.value = state.apiKey;
+    }
+  }
+
+  window.tfApp = {
+    switchTab: function(tabName) {
+      state.activeTab = tabName;
+      const tabs = ['today', 'calendar', 'matrix', 'schedule', 'import'];
+      for (let i = 0; i < tabs.length; i++) {
+        const t = tabs[i];
+        const btn = document.getElementById('tab-btn-' + t);
+        const view = document.getElementById('view-' + t);
+        if (btn) {
+          if (t === tabName) btn.classList.add('active');
+          else btn.classList.remove('active');
+        }
+        if (view) {
+          if (t === tabName) view.classList.remove('tf-hidden');
+          else view.classList.add('tf-hidden');
+        }
+      }
+      renderAll();
+    },
+
+    selectDay: function(dayNum) {
+      state.selectedDay = dayNum;
+      renderAll();
+    },
+
+    // 行事曆互動方法
+    changeCalMonth: function(delta) {
+      let m = state.calendarMonth.month + delta;
+      let y = state.calendarMonth.year;
+      if (m < 0) { m = 11; y--; }
+      else if (m > 11) { m = 0; y++; }
+      state.calendarMonth = { year: y, month: m };
+      renderCalendar();
+    },
+
+    goCalToday: function() {
+      state.calendarMonth = { year: now.getFullYear(), month: now.getMonth() };
+      state.selectedCalDate = todayKey;
+      renderCalendar();
+    },
+
+    selectCalDate: function(dateKey) {
+      state.selectedCalDate = dateKey;
+      renderCalendar();
+    },
+
+    toggleCalHoliday: function(dateKey) {
+      if (state.holidays[dateKey]) {
+        delete state.holidays[dateKey];
+        showToast(dateKey + ' 已恢復為上課日，堂數已重算', '📅');
+      } else {
+        const inp = document.getElementById('cal-holiday-name-input');
+        const name = (inp && inp.value.trim()) ? inp.value.trim() : '放假/停課';
+        state.holidays[dateKey] = { name: name };
+        showToast(dateKey + ' 已設為放假，已自動扣除倒數堂數', '🚫');
+      }
+      saveStorage();
+      renderAll();
+    },
+
+    addCalMemo: function(dateKey) {
+      const inp = document.getElementById('cal-memo-input');
+      const txt = inp ? inp.value.trim() : '';
+      if (!txt) {
+        showToast('請輸入記事內容', '⚠️');
+        return;
+      }
+      if (!Array.isArray(state.calendarMemos[dateKey])) state.calendarMemos[dateKey] = [];
+      state.calendarMemos[dateKey].push({ id: Date.now(), text: txt });
+      saveStorage();
+      renderCalendar();
+      showToast('已新增行事曆記事', '📌');
+    },
+
+    deleteCalMemo: function(dateKey, memoId) {
+      if (!Array.isArray(state.calendarMemos[dateKey])) return;
+      state.calendarMemos[dateKey] = state.calendarMemos[dateKey].filter(function(m) { return m.id !== memoId; });
+      if (state.calendarMemos[dateKey].length === 0) delete state.calendarMemos[dateKey];
+      saveStorage();
+      renderCalendar();
+      showToast('已移除記事', '🗑️');
+    },
+
+    openHolidayRangeModal: function() {
+      document.getElementById('input-hol-name').value = '';
+      document.getElementById('input-hol-start').value = state.selectedCalDate || todayKey;
+      document.getElementById('input-hol-end').value = state.selectedCalDate || todayKey;
+      document.getElementById('modal-holiday-range').classList.remove('tf-hidden');
+    },
+
+    closeHolidayRangeModal: function() {
+      document.getElementById('modal-holiday-range').classList.add('tf-hidden');
+    },
+
+    saveHolidayRange: function() {
+      const name = (document.getElementById('input-hol-name').value || '').trim() || '連假停課';
+      const sStr = document.getElementById('input-hol-start').value;
+      const eStr = document.getElementById('input-hol-end').value;
+      if (!sStr || !eStr) {
+        showToast('請選擇開始與結束日期', '⚠️');
+        return;
+      }
+      const sDate = new Date(sStr + 'T00:00:00');
+      const eDate = new Date(eStr + 'T00:00:00');
+      if (sDate > eDate) {
+        showToast('結束日期需晚於開始日期', '⚠️');
+        return;
+      }
+      const cur = new Date(sDate.getTime());
+      let added = 0;
+      while (cur <= eDate && added < 90) {
+        state.holidays[formatDateKey(cur)] = { name: name };
+        cur.setDate(cur.getDate() + 1);
+        added++;
+      }
+      saveStorage();
+      document.getElementById('modal-holiday-range').classList.add('tf-hidden');
+      renderAll();
+      showToast('已加入 ' + added + ' 天連假並重算倒數堂數', '🏖️');
+    },
+
+    adjustPage: function(clsName, delta) {
+      if (state.classesData[clsName]) {
+        state.classesData[clsName].page = Math.max(0, Number(state.classesData[clsName].page || 0) + delta);
+        saveStorage();
+        renderAll();
+        showToast(clsName + ' 進度已更新為 P.' + state.classesData[clsName].page, '📖');
+      }
+    },
+
+    setPage: function(clsName, val) {
+      if (state.classesData[clsName]) {
+        state.classesData[clsName].page = Math.max(0, parseInt(val, 10) || 0);
+        saveStorage();
+        renderAll();
+        showToast(clsName + ' 頁碼已儲存', '📖');
+      }
+    },
+
+    adjustRemaining: function(clsName, delta) {
+      if (state.classesData[clsName]) {
+        const autoCount = calcAutoRemainingClasses(clsName);
+        const curEff = getEffectiveRemainingClasses(clsName);
+        const nextEff = Math.max(0, curEff + delta);
+        state.classesData[clsName].manualOffset = nextEff - autoCount;
+        saveStorage();
+        renderAll();
+        showToast(clsName + ' 剩餘堂數已微調為 ' + nextEff + ' 堂', '⏱️');
+      }
+    },
+
+    resetRemainingOffset: function(clsName) {
+      if (state.classesData[clsName]) {
+        state.classesData[clsName].manualOffset = 0;
+        saveStorage();
+        renderAll();
+        showToast(clsName + ' 已恢復為行事曆自動精算堂數', '🔄');
+      }
+    },
+
+    updateChapter: function(clsName, val) {
+      if (state.classesData[clsName]) {
+        state.classesData[clsName].chapter = val;
+        saveStorage();
+        renderMatrix();
+        showToast(clsName + ' 單元名稱已更新', '✏️');
+      }
+    },
+
+    updateMemo: function(clsName, val) {
+      if (state.classesData[clsName]) {
+        state.classesData[clsName].memo = val;
+        saveStorage();
+        renderAll();
+        showToast(clsName + ' 課堂備忘已儲存', '📝');
+      }
+    },
+
+    togglePauseTag: function(clsName, tag) {
+      const cls = state.classesData[clsName];
+      if (!cls) return;
+      if (!Array.isArray(cls.pauseTags)) cls.pauseTags = [];
+      const idx = cls.pauseTags.indexOf(tag);
+      if (idx === -1) {
+        cls.pauseTags.push(tag);
+        showToast(clsName + ' 已標記「' + tag + '」', '🏷️');
+      } else {
+        cls.pauseTags.splice(idx, 1);
+        showToast(clsName + ' 已移除「' + tag + '」', '🏷️');
+      }
+      saveStorage();
+      renderAll();
+    },
+
+    openAddTagModal: function(clsName) {
+      state.addingTagForClass = clsName;
+      document.getElementById('add-tag-subtitle').textContent = '為 ' + clsName + ' 新增自訂停頓點標籤';
+      document.getElementById('input-custom-tag').value = '';
+      window.tfApp.renderCustomTagManageList();
+      document.getElementById('modal-add-tag').classList.remove('tf-hidden');
+    },
+
+    renderCustomTagManageList: function() {
+      const box = document.getElementById('custom-tag-manage-list');
+      if (!box) return;
+      let html = '';
+      for (let i = 0; i < state.pauseTagLibrary.length; i++) {
+        const tag = state.pauseTagLibrary[i];
+        const isDefault = DEFAULT_TAGS.indexOf(tag) !== -1;
+        html += '<span class="tf-tag-chip" style="display:inline-flex;align-items:center;gap:4px;">' + esc(tag) +
+          (!isDefault ? '<button onclick="window.tfApp.deleteCustomTag(\'' + escJs(tag) + '\')" style="color:#e11d48;font-weight:800;font-size:11px;padding:0 2px;">×</button>' : '') +
+          '</span>';
+      }
+      box.innerHTML = html;
+    },
+
+    deleteCustomTag: function(tag) {
+      state.pauseTagLibrary = state.pauseTagLibrary.filter(function(t) { return t !== tag; });
+      const keys = Object.keys(state.classesData);
+      for (let i = 0; i < keys.length; i++) {
+        const arr = state.classesData[keys[i]].pauseTags;
+        if (Array.isArray(arr)) {
+          state.classesData[keys[i]].pauseTags = arr.filter(function(t) { return t !== tag; });
+        }
+      }
+      saveStorage();
+      window.tfApp.renderCustomTagManageList();
+      renderAll();
+    },
+
+    closeAddTagModal: function() {
+      document.getElementById('modal-add-tag').classList.add('tf-hidden');
+    },
+
+    saveCustomTag: function() {
+      const val = (document.getElementById('input-custom-tag').value || '').trim();
+      if (!val) {
+        showToast('請輸入標籤名稱', '⚠️');
+        return;
+      }
+      if (state.pauseTagLibrary.indexOf(val) === -1) {
+        state.pauseTagLibrary.push(val);
+      }
+      if (state.addingTagForClass && state.classesData[state.addingTagForClass]) {
+        const tags = state.classesData[state.addingTagForClass].pauseTags;
+        if (tags.indexOf(val) === -1) tags.push(val);
+      }
+      saveStorage();
+      document.getElementById('modal-add-tag').classList.add('tf-hidden');
+      renderAll();
+      showToast('已新增並套用標籤「' + val + '」', '🏷️');
+    },
+
+    openMailModal: function(clsName, mode) {
+      const clsNames = Object.keys(state.classesData);
+      if (clsNames.length === 0) {
+        showToast('請先建立授課班級', '⚠️');
+        return;
+      }
+      state.mailModal.mode = mode || 'single';
+      state.mailModal.targetClass = (clsName && state.classesData[clsName]) ? clsName : clsNames[0];
+
+      for (let i = 0; i < clsNames.length; i++) {
+        const c = clsNames[i];
+        if (typeof state.mailModal.bccSelected[c] === 'undefined') {
+          state.mailModal.bccSelected[c] = true;
+        }
+      }
+
+      const sel = document.getElementById('mail-single-class');
+      let optHtml = '';
+      for (let i = 0; i < clsNames.length; i++) {
+        optHtml += '<option value="' + esc(clsNames[i]) + '">' + esc(clsNames[i]) + '</option>';
+      }
+      sel.innerHTML = optHtml;
+      sel.value = state.mailModal.targetClass;
+
+      window.tfApp.setMailMode(state.mailModal.mode);
+      document.getElementById('modal-mail').classList.remove('tf-hidden');
+    },
+
+    closeMailModal: function() {
+      document.getElementById('modal-mail').classList.add('tf-hidden');
+    },
+
+    setMailMode: function(mode) {
+      state.mailModal.mode = mode;
+      const btnSingle = document.getElementById('mail-mode-single');
+      const btnBcc = document.getElementById('mail-mode-bcc');
+      const panelSingle = document.getElementById('mail-single-panel');
+      const panelBcc = document.getElementById('mail-bcc-panel');
+
+      if (mode === 'single') {
+        btnSingle.classList.add('active');
+        btnBcc.classList.remove('active');
+        panelSingle.classList.remove('tf-hidden');
+        panelBcc.classList.add('tf-hidden');
+        window.tfApp.onMailClassChange();
+      } else {
+        btnBcc.classList.add('active');
+        btnSingle.classList.remove('active');
+        panelBcc.classList.remove('tf-hidden');
+        panelSingle.classList.add('tf-hidden');
+        renderMailBccList();
+        window.tfApp.applyMailTemplate('progress');
+      }
+    },
+
+    onMailClassChange: function() {
+      const clsName = document.getElementById('mail-single-class').value;
+      state.mailModal.targetClass = clsName;
+      const data = state.classesData[clsName] || {};
+      document.getElementById('mail-single-name').value = data.assistantName || '';
+      document.getElementById('mail-single-email').value = data.assistantEmail || '';
+      window.tfApp.applyMailTemplate('progress');
+    },
+
+    saveAssistantInfo: function() {
+      const clsName = document.getElementById('mail-single-class').value;
+      if (!state.classesData[clsName]) return;
+      state.classesData[clsName].assistantName = (document.getElementById('mail-single-name').value || '').trim();
+      state.classesData[clsName].assistantEmail = (document.getElementById('mail-single-email').value || '').trim();
+      saveStorage();
+      renderToday();
+      showToast(clsName + ' 小老師資料已儲存', '✉️');
+    },
+
+    toggleBccClass: function(clsName, checked) {
+      state.mailModal.bccSelected[clsName] = !!checked;
+      renderMailBccList();
+    },
+
+    toggleAllBcc: function(checked) {
+      const clsNames = Object.keys(state.classesData);
+      for (let i = 0; i < clsNames.length; i++) {
+        state.mailModal.bccSelected[clsNames[i]] = !!checked;
+      }
+      renderMailBccList();
+    },
+
+    updateBccEmail: function(clsName, emailVal) {
+      if (state.classesData[clsName]) {
+        state.classesData[clsName].assistantEmail = (emailVal || '').trim();
+        saveStorage();
+        renderToday();
+        showToast(clsName + ' 小老師信箱已儲存', '✉️');
+      }
+    },
+
+    applyMailTemplate: function(tplType) {
+      const isBcc = state.mailModal.mode === 'bcc';
+      const clsName = state.mailModal.targetClass;
+      const data = state.classesData[clsName] || { chapter: '', page: 1, memo: '', pauseTags: [], assistantName: '' };
+      const subjectEl = document.getElementById('mail-subject');
+      const bodyEl = document.getElementById('mail-body');
+      const greeting = isBcc
+        ? '各位公民小老師你們好：'
+        : ((data.assistantName ? data.assistantName + ' 小老師' : clsName + ' 小老師') + '你好：');
+
+      if (tplType === 'progress') {
+        if (isBcc) {
+          subjectEl.value = '【公民與社會】本週課程進度與事項提醒';
+          const scopeStr = state.examChapters.length ? state.examChapters.join('、') : '依課堂公告';
+          bodyEl.value = greeting + '\n\n提醒本週各班教學進度與注意事項如下，麻煩協助轉達給同學：\n• 本次段考範圍：' + scopeStr + '（段考日期：' + formatExamRange() + '）\n• 下次上課請提醒同學攜帶課本與講義。\n\n辛苦了，謝謝協助！';
+        } else {
+          const rem = getEffectiveRemainingClasses(clsName);
+          const chStats = getClassChapterStats(clsName);
+          const tagsStr = (data.pauseTags && data.pauseTags.length > 0) ? ('\n• 課堂停頓標記：' + data.pauseTags.join('、')) : '';
+          const memoStr = data.memo ? ('\n• 下節提醒事項：' + data.memo) : '';
+          subjectEl.value = '【公民與社會】' + clsName + ' 課程進度與事項通知';
+          bodyEl.value = greeting + '\n\n跟您同步一下 ' + clsName + ' 目前的課堂進度：\n• 目前章節：' + (data.chapter || '依課表進度') + '（P.' + data.page + '）\n• 段考章節進度：已完成 ' + chStats.doneCount + ' / ' + chStats.total + ' 章（考前剩 ' + rem + ' 堂課）' + tagsStr + memoStr + '\n\n麻煩協助提醒班上同學，辛苦你了！';
+        }
+      } else if (tplType === 'exam') {
+        const scopeStr = state.examChapters.length ? state.examChapters.join('、') : '依課堂公告';
+        subjectEl.value = '【重要】公民與社會段考範圍與講義繳交提醒';
+        bodyEl.value = greeting + '\n\n本次段考日期為 ' + formatExamRange() + '，考試範圍為：' + scopeStr + '。\n請協助提醒同學提前複習並準備相關講義/學習單。\n\n若有疑問隨時回信詢問，謝謝幫忙！';
+      } else if (tplType === 'swap') {
+        subjectEl.value = '【調課通知】' + (isBcc ? '全學年' : clsName) + ' 公民課堂異動提醒';
+        bodyEl.value = greeting + '\n\n通知您近期課堂有調課／異動安排，請協助轉告班上同學留意上課時間與攜帶課本。\n\n謝謝協助！';
+      }
+    },
+
+    getResolvedRecipients: function() {
+      if (state.mailModal.mode === 'single') {
+        const email = (document.getElementById('mail-single-email').value || '').trim();
+        return email ? [email] : [];
+      }
+      const emails = [];
+      const clsNames = Object.keys(state.classesData);
+      for (let i = 0; i < clsNames.length; i++) {
+        const c = clsNames[i];
+        if (state.mailModal.bccSelected[c]) {
+          const em = (state.classesData[c].assistantEmail || '').trim();
+          if (em && emails.indexOf(em) === -1) emails.push(em);
+        }
+      }
+      return emails;
+    },
+
+    copyMailContent: function() {
+      const recipients = window.tfApp.getResolvedRecipients();
+      const subject = document.getElementById('mail-subject').value || '';
+      const body = document.getElementById('mail-body').value || '';
+      const headerLabel = state.mailModal.mode === 'bcc' ? '密件副本 (BCC)：' : '收件人：';
+      const fullText = headerLabel + (recipients.length ? recipients.join(', ') : '(尚未填寫)') + '\n主旨：' + subject + '\n\n' + body;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(fullText).then(function() {
+          showToast('已複製收件人與信件內容！', '📋');
+        }).catch(function() {
+          fallbackCopy(fullText);
+        });
+      } else {
+        fallbackCopy(fullText);
+      }
+
+      function fallbackCopy(txt) {
+        const ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+        showToast('已複製收件人與信件內容！', '📋');
+      }
+    },
+
+    sendMailto: function() {
+      const recipients = window.tfApp.getResolvedRecipients();
+      if (recipients.length === 0) {
+        showToast('請先填寫至少一位小老師 Email！', '⚠️');
+        return;
+      }
+      const subject = encodeURIComponent(document.getElementById('mail-subject').value || '');
+      const body = encodeURIComponent(document.getElementById('mail-body').value || '');
+      let href = '';
+      if (state.mailModal.mode === 'single') {
+        href = 'mailto:' + encodeURIComponent(recipients[0]) + '?subject=' + subject + '&body=' + body;
+      } else {
+        href = 'mailto:?bcc=' + recipients.map(encodeURIComponent).join(',') + '&subject=' + subject + '&body=' + body;
+      }
+      const a = document.createElement('a');
+      a.href = href;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('已呼叫郵件程式（若未跳出可點「複製內容」）', '🚀');
+    },
+
+    openSwapModal: function() {
+      const fromSelect = document.getElementById('swap-from-period');
+      const toSelect = document.getElementById('swap-to-class');
+      const daySched = state.weeklySchedule[state.selectedDay] || {};
+
+      let fromHtml = '';
+      for (let p = 1; p <= 7; p++) {
+        const cur = daySched[p] || '空堂';
+        fromHtml += '<option value="' + p + '">第 ' + p + ' 節 (原定: ' + esc(cur) + ')</option>';
+      }
+      fromSelect.innerHTML = fromHtml;
+
+      let toHtml = '';
+      const clsList = Object.keys(state.classesData);
+      for (let j = 0; j < clsList.length; j++) {
+        toHtml += '<option value="' + esc(clsList[j]) + '">' + esc(clsList[j]) + '</option>';
+      }
+      toHtml += '<option value="停課(公假/演講)">🚫 標記停課 (公假/活動)</option>';
+      toSelect.innerHTML = toHtml;
+
+      document.getElementById('modal-swap').classList.remove('tf-hidden');
+    },
+
+    closeSwapModal: function() {
+      document.getElementById('modal-swap').classList.add('tf-hidden');
+    },
+
+    applySwap: function() {
+      const info = getSelectedDayInfo();
+      const period = document.getElementById('swap-from-period').value;
+      const toClass = document.getElementById('swap-to-class').value;
+      const overrideKey = info.dateKey + '_d' + state.selectedDay + '_p' + period;
+      state.overrideSchedule[overrideKey] = toClass;
+      saveStorage();
+      document.getElementById('modal-swap').classList.add('tf-hidden');
+      renderAll();
+      showToast('已調動週' + weekDayMap[state.selectedDay] + '第 ' + period + ' 節課堂！', '🔄');
+    },
+
+    openEditCellModal: function(day, period) {
+      state.editingCell = { day: day, period: period };
+      const currentVal = (state.weeklySchedule[day] && state.weeklySchedule[day][period]) || '';
+      document.getElementById('edit-cell-subtitle').textContent = '週' + weekDayMap[day] + ' · 第 ' + period + ' 節';
+      document.getElementById('edit-cell-input').value = currentVal;
+
+      const quickContainer = document.getElementById('edit-cell-quick-btns');
+      let qHtml = '<span style="font-size: 10px; color: #94a3b8; width: 100%;">快速選取現有班級：</span>';
+      const clsList = Object.keys(state.classesData);
+      for (let i = 0; i < clsList.length; i++) {
+        const c = esc(clsList[i]);
+        const jc = escJs(clsList[i]);
+        qHtml += '<button onclick="document.getElementById(\'edit-cell-input\').value=\'' + jc + '\'" ' +
+          'style="padding: 4px 8px; border-radius: 6px; background-color: #eef2ff; color: #4338ca; font-weight: 700; font-size: 11px;">' + c + '</button>';
+      }
+      qHtml += '<button onclick="document.getElementById(\'edit-cell-input\').value=\'\'" ' +
+        'style="padding: 4px 8px; border-radius: 6px; background-color: #ffe4e6; color: #e11d48; font-weight: 700; font-size: 11px;">設為空堂</button>';
+      quickContainer.innerHTML = qHtml;
+
+      document.getElementById('modal-edit-cell').classList.remove('tf-hidden');
+    },
+
+    closeEditCellModal: function() {
+      document.getElementById('modal-edit-cell').classList.add('tf-hidden');
+    },
+
+    saveEditCellModal: function() {
+      const d = state.editingCell.day;
+      const p = state.editingCell.period;
+      const val = (document.getElementById('edit-cell-input').value || '').trim();
+      if (!state.weeklySchedule[d]) state.weeklySchedule[d] = {};
+      state.weeklySchedule[d][p] = val;
+      if (val && !state.classesData[val]) {
+        state.classesData[val] = { chapter: '第一單元 課程導論', page: 1, memo: '', manualOffset: 0, pauseTags: [], assistantName: '', assistantEmail: '' };
+      }
+      saveStorage();
+      document.getElementById('modal-edit-cell').classList.add('tf-hidden');
+      renderAll();
+      showToast('週' + weekDayMap[d] + ' 第 ' + p + ' 節課表已更新，堂數已重算', '✅');
+    },
+
+    selectClassChapter: function(clsName, chName) {
+      if (!state.classesData[clsName]) return;
+      state.classesData[clsName].chapter = chName;
+      saveStorage();
+      renderAll();
+      showToast(clsName + ' 切換至「' + chName + '」', '📘');
+    },
+
+    markCurrentChapterDone: function(clsName) {
+      const data = state.classesData[clsName];
+      if (!data || !data.chapter) return;
+      if (!Array.isArray(data.completedChapters)) data.completedChapters = [];
+      if (data.completedChapters.indexOf(data.chapter) === -1) {
+        data.completedChapters.push(data.chapter);
+      }
+      const curIdx = state.examChapters.indexOf(data.chapter);
+      if (curIdx !== -1 && curIdx + 1 < state.examChapters.length) {
+        data.chapter = state.examChapters[curIdx + 1];
+      }
+      saveStorage();
+      renderAll();
+      showToast(clsName + ' 已完成本章並更新進度！', '✅');
+    },
+
+    toggleClassChapterDone: function(clsName, chName) {
+      const data = state.classesData[clsName];
+      if (!data) return;
+      if (!Array.isArray(data.completedChapters)) data.completedChapters = [];
+      const idx = data.completedChapters.indexOf(chName);
+      if (idx === -1) {
+        data.completedChapters.push(chName);
+        showToast(clsName + ' 已勾選完成「' + chName + '」', '✅');
+      } else {
+        data.completedChapters.splice(idx, 1);
+        showToast(clsName + ' 已取消完成「' + chName + '」', '↩️');
+      }
+      saveStorage();
+      renderAll();
+    },
+
+    renderExamChaptersEditList: function() {
+      const box = document.getElementById('exam-chapters-edit-list');
+      if (!box) return;
+      if (state.examChapters.length === 0) {
+        box.innerHTML = '<div style="font-size:11px; color:#94a3b8; text-align:center; padding:8px;">尚未設定段考章節</div>';
+        return;
+      }
+      let html = '';
+      for (let i = 0; i < state.examChapters.length; i++) {
+        const ch = state.examChapters[i];
+        html +=
+          '<div style="display:flex; justify-content:space-between; align-items:center; padding:4px 6px; border-bottom:1px solid #f1f5f9; font-size:12px;">' +
+            '<span style="font-weight:600; color:#334155;">' + (i + 1) + '. ' + esc(ch) + '</span>' +
+            '<button onclick="window.tfApp.deleteExamChapter(' + i + ')" style="color:#e11d48; font-weight:800; font-size:12px; padding:0 4px;">×</button>' +
+          '</div>';
+      }
+      box.innerHTML = html;
+    },
+
+    addExamChapter: function() {
+      const inp = document.getElementById('input-new-exam-chapter');
+      const val = (inp && inp.value || '').trim();
+      if (!val) {
+        showToast('請輸入章節名稱', '⚠️');
+        return;
+      }
+      if (state.examChapters.indexOf(val) === -1) {
+        state.examChapters.push(val);
+      }
+      inp.value = '';
+      window.tfApp.renderExamChaptersEditList();
+    },
+
+    deleteExamChapter: function(idx) {
+      state.examChapters.splice(idx, 1);
+      window.tfApp.renderExamChaptersEditList();
+    },
+
+    openExamConfigModal: function() {
+      document.getElementById('input-exam-start-date').value = state.examStartDate;
+      document.getElementById('input-exam-end-date').value = state.examEndDate;
+      document.getElementById('input-new-exam-chapter').value = '';
+      window.tfApp.renderExamChaptersEditList();
+      document.getElementById('modal-exam-config').classList.remove('tf-hidden');
+    },
+
+    closeExamConfigModal: function() {
+      document.getElementById('modal-exam-config').classList.add('tf-hidden');
+    },
+
+    saveExamConfigModal: function() {
+      const sDate = document.getElementById('input-exam-start-date').value;
+      const eDate = document.getElementById('input-exam-end-date').value;
+      if (sDate && eDate && sDate > eDate) {
+        showToast('結束日期需晚於或等於開始日期', '⚠️');
+        return;
+      }
+      if (sDate) state.examStartDate = sDate;
+      if (eDate) state.examEndDate = eDate;
+      else if (sDate) state.examEndDate = sDate;
+      saveStorage();
+      document.getElementById('modal-exam-config').classList.add('tf-hidden');
+      renderAll();
+      showToast('段考章節範圍與區間已更新！', '🎯');
+    },
+
+    openCloudModal: function() {
+      document.getElementById('input-cloud-url').value = state.cloudUrl;
+      document.getElementById('input-cloud-token').value = state.cloudToken;
+      document.getElementById('gas-script-preview').textContent = GAS_SCRIPT_TEMPLATE;
+      const st = document.getElementById('cloud-sync-status');
+      if (st) {
+        st.textContent = state.lastSyncTime ? ('上次同步：' + state.lastSyncTime) : '尚未執行同步';
+      }
+      document.getElementById('modal-cloud-sync').classList.remove('tf-hidden');
+    },
+
+    closeCloudModal: function() {
+      document.getElementById('modal-cloud-sync').classList.add('tf-hidden');
+    },
+
+    saveCloudConfig: function() {
+      state.cloudUrl = (document.getElementById('input-cloud-url').value || '').trim();
+      state.cloudToken = (document.getElementById('input-cloud-token').value || '').trim();
+      safeSet('teachflow_cloud_url', state.cloudUrl);
+      safeSet('teachflow_cloud_token', state.cloudToken);
+      showToast('雲端同步設定已儲存', '☁️');
+    },
+
+    copyGasScript: function() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(GAS_SCRIPT_TEMPLATE).then(function() {
+          showToast('已複製 Google Apps Script 程式碼！', '📋');
+        }).catch(function() {
+          fallbackCopy(GAS_SCRIPT_TEMPLATE);
+        });
+      } else {
+        fallbackCopy(GAS_SCRIPT_TEMPLATE);
+      }
+      function fallbackCopy(txt) {
+        const ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+        showToast('已複製 Google Apps Script 程式碼！', '📋');
+      }
+    },
+
+    pushToCloud: async function() {
+      window.tfApp.saveCloudConfig();
+      if (!state.cloudUrl || !state.cloudToken) {
+        showToast('請先填入 Apps Script 網址與安全金鑰', '⚠️');
+        return;
+      }
+      const st = document.getElementById('cloud-sync-status');
+      if (st) st.textContent = '⏳ 正在上傳備份至 Google 雲端...';
+      try {
+        const payload = {
+          token: state.cloudToken,
+          data: {
+            weeklySchedule: state.weeklySchedule,
+            classesData: state.classesData,
+            overrideSchedule: state.overrideSchedule,
+            examChapters: state.examChapters,
+            examStartDate: state.examStartDate,
+            examEndDate: state.examEndDate,
+            holidays: state.holidays,
+            calendarMemos: state.calendarMemos,
+            pauseTagLibrary: state.pauseTagLibrary
+          }
+        };
+        const res = await fetch(state.cloudUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || '上傳失敗');
+        const ts = new Date().toLocaleString('zh-TW');
+        state.lastSyncTime = ts;
+        safeSet('teachflow_last_sync', ts);
+        if (st) st.textContent = '✅ 上傳成功（' + ts + '）';
+        showToast('已成功備份至 Google 雲端硬碟！', '☁️');
+      } catch (err) {
+        if (st) st.textContent = '❌ 同步失敗：' + err.message;
+        showToast('雲端上傳失敗：' + err.message, '❌');
+      }
+    },
+
+    pullFromCloud: async function() {
+      window.tfApp.saveCloudConfig();
+      if (!state.cloudUrl || !state.cloudToken) {
+        showToast('請先填入 Apps Script 網址與安全金鑰', '⚠️');
+        return;
+      }
+      const st = document.getElementById('cloud-sync-status');
+      if (st) st.textContent = '⏳ 正在從 Google 雲端下載資料...';
+      try {
+        const sep = state.cloudUrl.indexOf('?') === -1 ? '?' : '&';
+        const res = await fetch(state.cloudUrl + sep + 'token=' + encodeURIComponent(state.cloudToken));
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || '下載失敗');
+        const d = json.data || {};
+        if (d.weeklySchedule) state.weeklySchedule = d.weeklySchedule;
+        if (d.classesData) state.classesData = d.classesData;
+        if (d.overrideSchedule) state.overrideSchedule = d.overrideSchedule;
+        if (Array.isArray(d.examChapters) && d.examChapters.length > 0) state.examChapters = d.examChapters;
+        if (d.examStartDate) state.examStartDate = d.examStartDate;
+        if (d.examEndDate) state.examEndDate = d.examEndDate;
+        if (d.holidays) state.holidays = d.holidays;
+        if (d.calendarMemos) state.calendarMemos = d.calendarMemos;
+        if (Array.isArray(d.pauseTagLibrary) && d.pauseTagLibrary.length > 0) state.pauseTagLibrary = d.pauseTagLibrary;
+        ensureClassFields();
+        saveStorage();
+        renderAll();
+        const ts = new Date().toLocaleString('zh-TW');
+        state.lastSyncTime = ts;
+        safeSet('teachflow_last_sync', ts);
+        if (st) st.textContent = '✅ 已還原雲端最新資料（' + ts + '）';
+        showToast('已從 Google 雲端還原同步！', '☁️');
+      } catch (err) {
+        if (st) st.textContent = '❌ 還原失敗：' + err.message;
+        showToast('雲端還原失敗：' + err.message, '❌');
+      }
+    },
+
+    saveApiKey: function(val) {
+      state.apiKey = (val || '').trim();
+      safeSet('gemini_user_api_key', state.apiKey);
+      showToast('API Key 已安全儲存於本機', '🔑');
+    },
+
+    triggerMockImport: function() {
+      window.tfApp.handleFileUpload({ target: { files: [new Blob(['mock'])] } }, 'schedule');
+    },
+
+    handleFileUpload: function(event, type) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const procBox = document.getElementById('import-processing-box');
+      const statusTxt = document.getElementById('import-status-text');
+      const previewCard = document.getElementById('import-preview-card');
+      const previewJson = document.getElementById('import-preview-json');
+
+      procBox.classList.remove('tf-hidden');
+      statusTxt.textContent = type === 'calendar' ? '正在解析行事曆放假與段考日期...' : '正在讀取課表影像資訊...';
+
+      setTimeout(function() {
+        const mockParsed = type === 'calendar'
+          ? {
+              holidays: [
+                { date: '2026-12-07', name: '校慶補假' },
+                { date: '2027-01-01', name: '元旦放假' }
+              ]
+            }
+          : {
+              routineSchedule: {
+                1: { 1: "101 班", 3: "103 班", 5: "105 班" },
+                2: { 2: "101 班", 4: "103 班" },
+                3: { 1: "105 班", 3: "101 班" },
+                4: { 2: "103 班", 4: "105 班", 5: "101 班" },
+                5: { 1: "103 班", 3: "105 班" }
+              },
+              detectedClasses: ["101 班", "103 班", "105 班"]
+            };
+        state.tempImportData = mockParsed;
+        previewJson.textContent = JSON.stringify(mockParsed, null, 2);
+        procBox.classList.add('tf-hidden');
+        previewCard.classList.remove('tf-hidden');
+        showToast('影像辨識完成，請核對預覽！', '✨');
+      }, 700);
+    },
+
+    discardImport: function() {
+      state.tempImportData = null;
+      document.getElementById('import-preview-card').classList.add('tf-hidden');
+    },
+
+    commitImport: function() {
+      if (!state.tempImportData) return;
+      let targetTab = 'schedule';
+      if (state.tempImportData.routineSchedule) {
+        const rs = state.tempImportData.routineSchedule;
+        for (const d in rs) {
+          state.weeklySchedule[d] = Object.assign({}, state.weeklySchedule[d] || {}, rs[d]);
+        }
+      }
+      if (state.tempImportData.detectedClasses) {
+        state.tempImportData.detectedClasses.forEach(function(c) {
+          if (!state.classesData[c]) {
+            state.classesData[c] = { chapter: '', page: 1, memo: '', manualOffset: 0, pauseTags: [], assistantName: '', assistantEmail: '' };
+          }
+        });
+      }
+      if (Array.isArray(state.tempImportData.holidays)) {
+        state.tempImportData.holidays.forEach(function(h) {
+          if (h.date) state.holidays[h.date] = { name: h.name || '放假停課' };
+        });
+        targetTab = 'calendar';
+      }
+      saveStorage();
+      document.getElementById('import-preview-card').classList.add('tf-hidden');
+      window.tfApp.switchTab(targetTab);
+      showToast('資料已成功套用並重算堂數！', '🎉');
+    },
+
+    exportCSV: function() {
+      let csv = '\uFEFF班級,當前教學章節,課本頁碼,段考章節進度,考前扣假剩餘堂數,每章可用堂數,停頓點標籤,下節課備忘事項,小老師信箱\n';
+      const clsNames = Object.keys(state.classesData);
+      for (let i = 0; i < clsNames.length; i++) {
+        const cls = clsNames[i];
+        const item = state.classesData[cls];
+        const rem = getEffectiveRemainingClasses(cls);
+        const chStats = getClassChapterStats(cls);
+        const paceLabel = formatChapterPaceLabel(chStats.leftCount, rem);
+        const tagsStr = Array.isArray(item.pauseTags) ? item.pauseTags.join(' / ') : '';
+        csv += '"' + cls + '","' + (item.chapter || '') + '","' + item.page + '","' + chStats.doneCount + '/' + chStats.total + '","' + rem + '","' + paceLabel + '","' + tagsStr + '","' + (item.memo || '') + '","' + (item.assistantEmail || '') + '"\n';
+      }
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = '教學進度統計_' + formatDateKey(new Date()) + '.csv';
+      link.click();
+      showToast('CSV 報表已匯出下載！', '📊');
+    }
+  };
+
+  loadStorage();
+  renderAll();
+})();
+</script>
+</body>
+</html>
