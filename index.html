@@ -1163,11 +1163,16 @@
           <input id="input-cloud-token" type="password" placeholder="例：kevin-teachflow-2026" onchange="window.tfApp.saveCloudConfig()" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 8px; background: #f8fafc; font-size: 12px;" />
         </div>
 
+        <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px; padding: 7px 9px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; font-size: 11px; font-weight: 700; color: #3730a3; cursor: pointer;">
+          <input id="chk-auto-sync" type="checkbox" checked onchange="window.tfApp.toggleAutoSync(this.checked)" />
+          <span>自動同步（修改後 2 秒自動上傳，開啟時自動拉取）</span>
+        </label>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-          <button id="btn-cloud-push" onclick="window.tfApp.pushToCloud()" style="padding: 8px; font-size: 12px; background-color: #4f46e5; color: #ffffff; border-radius: 10px; font-weight: 700;">
+          <button id="btn-cloud-push" onclick="window.tfApp.pushToCloud(false)" style="padding: 8px; font-size: 12px; background-color: #4f46e5; color: #ffffff; border-radius: 10px; font-weight: 700;">
             ⬆️ 上傳至雲端
           </button>
-          <button id="btn-cloud-pull" onclick="window.tfApp.pullFromCloud()" style="padding: 8px; font-size: 12px; background-color: #059669; color: #ffffff; border-radius: 10px; font-weight: 700;">
+          <button id="btn-cloud-pull" onclick="window.tfApp.pullFromCloud(false)" style="padding: 8px; font-size: 12px; background-color: #059669; color: #ffffff; border-radius: 10px; font-weight: 700;">
             ⬇️ 從雲端還原
           </button>
         </div>
@@ -1226,7 +1231,7 @@
 <script>
 (function() {
   // ★ 首次使用存取碼（部署到 GitHub Pages 前可直接修改雙引號內的密碼）
-  const ACCESS_CODE = '2300';
+  const ACCESS_CODE = '2026';
   const AUTH_KEY = 'teachflow_device_unlocked_v1';
 
   const STORAGE_KEY = 'teachflow_app_state_v4';
@@ -1327,6 +1332,7 @@
     cloudUrl: safeGet('teachflow_cloud_url') || '',
     cloudToken: safeGet('teachflow_cloud_token') || '',
     lastSyncTime: safeGet('teachflow_last_sync') || '',
+    autoSync: safeGet('teachflow_auto_sync') !== 'false',
     tempImportData: null,
     editingCell: { day: 1, period: 1 },
     addingTagForClass: null,
@@ -1398,7 +1404,27 @@
     ensureClassFields();
   }
 
-  function saveStorage() {
+  let autoSyncTimer = null;
+  let isPullingCloud = false;
+
+  function setTopSyncBadge(text) {
+    const btn = document.getElementById('btn-open-cloud-sync');
+    if (btn) btn.innerHTML = '<span>☁️</span> <span>' + text + '</span>';
+  }
+
+  function scheduleAutoPush() {
+    if (isPullingCloud || !state.autoSync || !state.cloudUrl || !state.cloudToken) return;
+    if (autoSyncTimer) clearTimeout(autoSyncTimer);
+    setTopSyncBadge('待同步');
+    autoSyncTimer = setTimeout(function() {
+      autoSyncTimer = null;
+      if (window.tfApp && window.tfApp.pushToCloud) {
+        window.tfApp.pushToCloud(true);
+      }
+    }, 2000);
+  }
+
+  function saveStorage(skipAutoPush) {
     safeSet(STORAGE_KEY, JSON.stringify({
       weeklySchedule: state.weeklySchedule,
       classesData: state.classesData,
@@ -1410,6 +1436,7 @@
       calendarMemos: state.calendarMemos,
       pauseTagLibrary: state.pauseTagLibrary
     }));
+    if (!skipAutoPush) scheduleAutoPush();
   }
 
   let toastTimer = null;
@@ -2657,6 +2684,7 @@
       const unlocked = safeGet(AUTH_KEY) === ACCESS_CODE;
       if (unlocked) {
         gate.classList.add('tf-hidden');
+        window.tfApp.autoPullOnStart();
       } else {
         gate.classList.remove('tf-hidden');
         const inp = document.getElementById('input-access-code');
@@ -2678,6 +2706,7 @@
         document.getElementById('access-gate').classList.add('tf-hidden');
         if (err) err.classList.add('tf-hidden');
         showToast('驗證成功，歡迎使用 TeachFlow！', '🔓');
+        window.tfApp.autoPullOnStart();
       } else {
         if (err) err.classList.remove('tf-hidden');
         if (inp) {
@@ -2694,9 +2723,23 @@
       showToast('已鎖定此裝置', '🔒');
     },
 
+    toggleAutoSync: function(checked) {
+      state.autoSync = !!checked;
+      safeSet('teachflow_auto_sync', state.autoSync ? 'true' : 'false');
+      showToast(state.autoSync ? '已開啟自動雲端同步' : '已切換為手動同步', '☁️');
+    },
+
+    autoPullOnStart: function() {
+      if (state.autoSync && state.cloudUrl && state.cloudToken) {
+        window.tfApp.pullFromCloud(true);
+      }
+    },
+
     openCloudModal: function() {
       document.getElementById('input-cloud-url').value = state.cloudUrl;
       document.getElementById('input-cloud-token').value = state.cloudToken;
+      const chk = document.getElementById('chk-auto-sync');
+      if (chk) chk.checked = !!state.autoSync;
       document.getElementById('gas-script-preview').textContent = GAS_SCRIPT_TEMPLATE;
       const st = document.getElementById('cloud-sync-status');
       if (st) {
@@ -2740,12 +2783,13 @@
       }
     },
 
-    pushToCloud: async function() {
-      window.tfApp.saveCloudConfig();
+    pushToCloud: async function(silent) {
+      if (!silent) window.tfApp.saveCloudConfig();
       if (!state.cloudUrl || !state.cloudToken) {
-        showToast('請先填入 Apps Script 網址與安全金鑰', '⚠️');
+        if (!silent) showToast('請先填入 Apps Script 網址與安全金鑰', '⚠️');
         return;
       }
+      setTopSyncBadge('同步中');
       const st = document.getElementById('cloud-sync-status');
       if (st) st.textContent = '⏳ 正在上傳備份至 Google 雲端...';
       try {
@@ -2773,20 +2817,25 @@
         const ts = new Date().toLocaleString('zh-TW');
         state.lastSyncTime = ts;
         safeSet('teachflow_last_sync', ts);
-        if (st) st.textContent = '✅ 上傳成功（' + ts + '）';
-        showToast('已成功備份至 Google 雲端硬碟！', '☁️');
+        if (st) st.textContent = '✅ 已自動同步（' + ts + '）';
+        setTopSyncBadge('已同步');
+        setTimeout(function() { setTopSyncBadge('同步'); }, 2000);
+        if (!silent) showToast('已成功備份至 Google 雲端硬碟！', '☁️');
       } catch (err) {
+        setTopSyncBadge('同步');
         if (st) st.textContent = '❌ 同步失敗：' + err.message;
-        showToast('雲端上傳失敗：' + err.message, '❌');
+        if (!silent) showToast('雲端上傳失敗：' + err.message, '❌');
       }
     },
 
-    pullFromCloud: async function() {
-      window.tfApp.saveCloudConfig();
+    pullFromCloud: async function(silent) {
+      if (!silent) window.tfApp.saveCloudConfig();
       if (!state.cloudUrl || !state.cloudToken) {
-        showToast('請先填入 Apps Script 網址與安全金鑰', '⚠️');
+        if (!silent) showToast('請先填入 Apps Script 網址與安全金鑰', '⚠️');
         return;
       }
+      isPullingCloud = true;
+      setTopSyncBadge('同步中');
       const st = document.getElementById('cloud-sync-status');
       if (st) st.textContent = '⏳ 正在從 Google 雲端下載資料...';
       try {
@@ -2795,26 +2844,33 @@
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || '下載失敗');
         const d = json.data || {};
-        if (d.weeklySchedule) state.weeklySchedule = d.weeklySchedule;
-        if (d.classesData) state.classesData = d.classesData;
-        if (d.overrideSchedule) state.overrideSchedule = d.overrideSchedule;
-        if (Array.isArray(d.examChapters) && d.examChapters.length > 0) state.examChapters = d.examChapters;
-        if (d.examStartDate) state.examStartDate = d.examStartDate;
-        if (d.examEndDate) state.examEndDate = d.examEndDate;
-        if (d.holidays) state.holidays = d.holidays;
-        if (d.calendarMemos) state.calendarMemos = d.calendarMemos;
-        if (Array.isArray(d.pauseTagLibrary) && d.pauseTagLibrary.length > 0) state.pauseTagLibrary = d.pauseTagLibrary;
-        ensureClassFields();
-        saveStorage();
-        renderAll();
+        if (Object.keys(d).length > 0) {
+          if (d.weeklySchedule) state.weeklySchedule = d.weeklySchedule;
+          if (d.classesData) state.classesData = d.classesData;
+          if (d.overrideSchedule) state.overrideSchedule = d.overrideSchedule;
+          if (Array.isArray(d.examChapters) && d.examChapters.length > 0) state.examChapters = d.examChapters;
+          if (d.examStartDate) state.examStartDate = d.examStartDate;
+          if (d.examEndDate) state.examEndDate = d.examEndDate;
+          if (d.holidays) state.holidays = d.holidays;
+          if (d.calendarMemos) state.calendarMemos = d.calendarMemos;
+          if (Array.isArray(d.pauseTagLibrary) && d.pauseTagLibrary.length > 0) state.pauseTagLibrary = d.pauseTagLibrary;
+          ensureClassFields();
+          saveStorage(true);
+          renderAll();
+        }
         const ts = new Date().toLocaleString('zh-TW');
         state.lastSyncTime = ts;
         safeSet('teachflow_last_sync', ts);
-        if (st) st.textContent = '✅ 已還原雲端最新資料（' + ts + '）';
-        showToast('已從 Google 雲端還原同步！', '☁️');
+        if (st) st.textContent = '✅ 已同步雲端最新資料（' + ts + '）';
+        setTopSyncBadge('已同步');
+        setTimeout(function() { setTopSyncBadge('同步'); }, 2000);
+        if (!silent) showToast('已從 Google 雲端還原同步！', '☁️');
       } catch (err) {
+        setTopSyncBadge('同步');
         if (st) st.textContent = '❌ 還原失敗：' + err.message;
-        showToast('雲端還原失敗：' + err.message, '❌');
+        if (!silent) showToast('雲端還原失敗：' + err.message, '❌');
+      } finally {
+        isPullingCloud = false;
       }
     },
 
