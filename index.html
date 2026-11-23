@@ -40,6 +40,8 @@
     }
     input, select, textarea {
       font-family: inherit;
+      user-select: text;
+      -webkit-user-select: text;
     }
 
     /* 主容器與頂部看板 */
@@ -851,6 +853,9 @@
 
       <!-- 選定日期詳細與教師記事面板 -->
       <div id="cal-day-detail" class="tf-card"></div>
+
+      <!-- 本月行事曆事件總覽（含匯入之放假、段考與學校活動） -->
+      <div id="cal-month-events" class="tf-card"></div>
     </section>
 
     <!-- 頁籤 3: 段考配速看板 -->
@@ -896,22 +901,32 @@
       <div class="tf-card">
         <h3 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 800; color: #0f172a;">📸 課表 / 行事曆智慧辨識</h3>
         <p style="margin: 0 0 12px 0; font-size: 12px; color: #64748b; line-height: 1.5;">
-          直接上傳教務處發布的個人課表截圖（JPG/PNG）或整學期行事曆（PDF/圖檔），自動帶入放假日並精算倒數堂數。
+          填入 Google AI Studio 的 Gemini API Key 後，直接上傳課表截圖（JPG/PNG）或學期行事曆（PDF/圖檔），即可自動辨識寫入。
         </p>
 
-        <!-- API Key 設定 -->
-        <div style="margin-bottom: 16px; background-color: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;">
-          <label style="font-size: 10px; font-weight: 700; color: #64748b; display: block; margin-bottom: 4px;">
-            🔑 GEMINI API KEY (選填，未填可使用內建模擬辨識)
-          </label>
+        <!-- API Key 設定與連線測試 -->
+        <div style="margin-bottom: 12px; background-color: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <div class="tf-row-between" style="align-items: center; margin-bottom: 5px;">
+            <label style="font-size: 10px; font-weight: 700; color: #64748b;">🔑 GEMINI API KEY（只需填一次，即享一鍵全自動匯入）</label>
+            <button onclick="window.tfApp.testGeminiKey()" style="font-size: 10px; font-weight: 700; color: #4338ca; background: #eef2ff; padding: 3px 8px; border-radius: 6px;">測試連線</button>
+          </div>
           <input 
             id="input-api-key"
             type="password" 
-            placeholder="貼上個人 Google AI API Key..." 
+            placeholder="貼上 AIza... 開頭的 Google AI Studio API Key" 
             onchange="window.tfApp.saveApiKey(this.value)"
             style="width: 100%; font-size: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; outline: none;"
           />
+          <div id="api-key-status" style="margin-top: 5px; font-size: 10px; color: #64748b;">
+            填入後上傳圖檔／PDF 即自動辨識並完成寫入；<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:#4338ca;font-weight:700;text-decoration:underline;">免費申請 API Key ↗</a>
+          </div>
         </div>
+
+        <!-- 一鍵自動套用開關 -->
+        <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px; padding: 7px 10px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; font-size: 11px; font-weight: 700; color: #3730a3; cursor: pointer;">
+          <input id="chk-auto-commit-import" type="checkbox" checked />
+          <span>⚡ 辨識完成直接自動寫入課表／行事曆並重算堂數（免手動貼上確認）</span>
+        </label>
 
         <!-- 檔案上傳按鈕 -->
         <div class="tf-upload-grid">
@@ -930,31 +945,62 @@
           </label>
         </div>
 
-        <!-- 快速體驗模擬辨識 -->
-        <div class="tf-row-between" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; align-items: center;">
-          <span style="font-size: 11px; color: #94a3b8;">手邊無圖檔？可一鍵測試辨識流程：</span>
-          <button onclick="window.tfApp.triggerMockImport()" style="font-size: 12px; font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 5px 10px; border-radius: 8px;">
-            試用範例課表辨識
-          </button>
-        </div>
-
         <!-- 處理進度狀態 -->
-        <div id="import-processing-box" class="tf-hidden" style="margin-top: 14px; padding: 12px; background-color: #eef2ff; border-radius: 12px; display: flex; align-items: center; gap: 10px;">
+        <div id="import-processing-box" class="tf-hidden" style="margin-top: 12px; padding: 12px; background-color: #eef2ff; border-radius: 12px; display: flex; align-items: center; gap: 10px;">
           <span style="font-size: 14px;">⏳</span>
           <span id="import-status-text" style="font-size: 12px; font-weight: 600; color: #3730a3;">正在讀取文件與影像資訊...</span>
         </div>
+
+        <!-- 錯誤提示區 -->
+        <div id="import-error-box" class="tf-hidden" style="margin-top: 12px; padding: 10px 12px; background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; font-size: 11px; color: #be123c; line-height: 1.5;"></div>
+
+        <!-- 快速體驗與免 API Key 貼上匯入 -->
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9;">
+          <div class="tf-row-between" style="align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span style="font-size: 11px; color: #64748b; font-weight: 700;">免 API Key 替代方案：</span>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+              <button type="button" onclick="window.tfApp.copyAiPrompt('schedule')" style="font-size: 11px; font-weight: 700; color: #4338ca; background: #eef2ff; padding: 5px 9px; border-radius: 6px;">📋 課表指令</button>
+              <button type="button" onclick="window.tfApp.copyAiPrompt('calendar')" style="font-size: 11px; font-weight: 700; color: #047857; background: #ecfdf5; padding: 5px 9px; border-radius: 6px;">📋 行事曆指令</button>
+              <button type="button" onclick="window.tfApp.openPasteJsonPreview()" style="font-size: 11px; font-weight: 700; color: #334155; background: #f1f5f9; padding: 5px 9px; border-radius: 6px;">📥 貼上 JSON</button>
+              <button type="button" onclick="window.tfApp.triggerMockImport()" style="font-size: 11px; font-weight: 700; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 9px; border-radius: 6px;">試用範例課表辨識</button>
+            </div>
+          </div>
+
+          <!-- 免 API Key 指令顯示與複製區 -->
+          <div id="import-prompt-box" class="tf-hidden" style="margin-top: 10px; padding: 10px; background: #f8fafc; border: 1px solid #c7d2fe; border-radius: 10px;">
+            <div class="tf-row-between" style="align-items: center; margin-bottom: 6px;">
+              <span id="import-prompt-title" style="font-size: 11px; font-weight: 800; color: #3730a3;">📋 課表辨識指令</span>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" onclick="window.tfApp.copyVisiblePrompt()" style="font-size: 10px; font-weight: 700; color: #ffffff; background: #4f46e5; padding: 3px 8px; border-radius: 6px;">一鍵複製</button>
+                <button type="button" onclick="document.getElementById('import-prompt-box').classList.add('tf-hidden')" style="font-size: 11px; font-weight: 700; color: #94a3b8; padding: 2px 5px;">✕</button>
+              </div>
+            </div>
+            <textarea id="import-prompt-textarea" rows="4" readonly style="width: 100%; font-size: 11px; font-family: monospace; color: #334155; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px; resize: vertical; outline: none;"></textarea>
+            <div class="tf-row-between" style="align-items: center; margin-top: 6px;">
+              <span id="import-prompt-hint" style="font-size: 10px; color: #059669; font-weight: 600;">將指令連同課表圖檔貼給 Gemini，再將回傳結果貼入下方</span>
+              <button type="button" onclick="window.tfApp.openPasteJsonPreview()" style="font-size: 10px; font-weight: 700; color: #4338ca; background: #eef2ff; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">下一步：貼上 JSON →</button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 預覽核對區 -->
+      <!-- 預覽核對區（可直接微調 JSON 後套用） -->
       <div id="import-preview-card" class="tf-card tf-hidden" style="border-color: #c7d2fe;">
-        <div class="tf-row-between" style="margin-bottom: 8px; align-items: center;">
+        <div class="tf-row-between" style="margin-bottom: 6px; align-items: center;">
           <h4 style="margin: 0; font-size: 12px; font-weight: 800; color: #1e293b;">✅ 辨識結果核對預覽</h4>
-          <span style="font-size: 10px; color: #94a3b8;">請肉眼確認無誤後套用</span>
+          <span style="font-size: 10px; color: #94a3b8;">可直接編輯修正後套用</span>
         </div>
-        <pre id="import-preview-json" style="background-color: #f8fafc; padding: 10px; border-radius: 8px; font-size: 11px; font-family: monospace; color: #475569; overflow-x: auto; max-height: 160px; border: 1px solid #f1f5f9; margin: 0;"></pre>
-        <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
-          <button onclick="window.tfApp.discardImport()" style="padding: 6px 12px; font-size: 12px; color: #64748b; font-weight: 600;">捨棄</button>
-          <button onclick="window.tfApp.commitImport()" style="padding: 6px 16px; font-size: 12px; background-color: #4f46e5; color: #ffffff; font-weight: 700; border-radius: 8px;">確認套用至課表</button>
+        <div id="import-preview-summary" style="font-size: 11px; color: #3730a3; background: #eef2ff; padding: 6px 10px; border-radius: 8px; margin-bottom: 8px; font-weight: 600;"></div>
+        <textarea id="import-preview-json" rows="8" style="width: 100%; background-color: #f8fafc; padding: 10px; border-radius: 8px; font-size: 11px; font-family: monospace; color: #334155; border: 1px solid #cbd5e1; resize: vertical; outline: none;"></textarea>
+        <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <label style="font-size: 11px; color: #64748b; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+            <input id="chk-replace-schedule" type="checkbox" checked />
+            <span>課表匯入時覆蓋原課表</span>
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <button onclick="window.tfApp.discardImport()" style="padding: 6px 12px; font-size: 12px; color: #64748b; font-weight: 600;">捨棄</button>
+            <button onclick="window.tfApp.commitImport()" style="padding: 6px 16px; font-size: 12px; background-color: #4f46e5; color: #ffffff; font-weight: 700; border-radius: 8px;">確認套用至課表</button>
+          </div>
         </div>
       </div>
     </section>
@@ -1231,7 +1277,7 @@
 <script>
 (function() {
   // ★ 首次使用存取碼（部署到 GitHub Pages 前可直接修改雙引號內的密碼）
-  const ACCESS_CODE = '2300';
+  const ACCESS_CODE = '2026';
   const AUTH_KEY = 'teachflow_device_unlocked_v1';
 
   const STORAGE_KEY = 'teachflow_app_state_v4';
@@ -1267,6 +1313,20 @@
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return y + '-' + m + '-' + day;
+  }
+
+  // 將各種日期格式 (YYYY/M/D、YYYY-M-D、民國年 115/11/5) 標準化為 YYYY-MM-DD
+  function normalizeDateKey(str) {
+    if (!str) return '';
+    const cleaned = String(str).trim().replace(/[年\.\/]/g, '-').replace(/[月]/g, '-').replace(/[日號]/g, '').replace(/\s+/g, '');
+    const m = cleaned.match(/^(\d{2,4})-(\d{1,2})-(\d{1,2})/);
+    if (!m) return '';
+    let y = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10);
+    const da = parseInt(m[3], 10);
+    if (y < 1911) y += 1911; // 支援民國年 (如 115 -> 2026)
+    if (mo < 1 || mo > 12 || da < 1 || da > 31) return '';
+    return y + '-' + String(mo).padStart(2, '0') + '-' + String(da).padStart(2, '0');
   }
 
   const now = new Date();
@@ -1786,8 +1846,9 @@
       if (memos.length > 0) dots += '<span class="tf-dot-memo"></span>';
 
       let miniLabel = '';
-      if (hol) miniLabel = '<span class="tf-cal-tag-tiny">' + esc(hol.name.slice(0, 3)) + '</span>';
-      else if (isExam) miniLabel = '<span class="tf-cal-tag-tiny">段考</span>';
+      if (hol) miniLabel = '<span class="tf-cal-tag-tiny" style="color:#be123c;">' + esc(hol.name.slice(0, 3)) + '</span>';
+      else if (isExam) miniLabel = '<span class="tf-cal-tag-tiny" style="color:#92400e;">段考</span>';
+      else if (memos.length > 0) miniLabel = '<span class="tf-cal-tag-tiny" style="color:#4338ca;">' + esc((memos[0].text || '').slice(0, 3)) + '</span>';
 
       html +=
         '<div class="' + cls + '" onclick="window.tfApp.selectCalDate(\'' + dKey + '\')">' +
@@ -1869,6 +1930,50 @@
           'style="flex: 1; font-size: 12px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 9px; background: #ffffff;" />' +
         '<button onclick="window.tfApp.addCalMemo(\'' + selDate + '\')" style="font-size: 11px; font-weight: 700; padding: 7px 12px; border-radius: 8px; background: #4f46e5; color: #ffffff;">+ 記事</button>' +
       '</div>';
+
+    // 渲染本月行事曆事件總覽清單
+    const monthBox = document.getElementById('cal-month-events');
+    if (monthBox) {
+      const monthPrefix = y + '-' + String(m + 1).padStart(2, '0') + '-';
+      const monthItems = [];
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dk = monthPrefix + String(day).padStart(2, '0');
+        if (state.holidays[dk]) {
+          monthItems.push({ date: dk, type: 'hol', label: state.holidays[dk].name });
+        }
+        if (isDateInExam(dk)) {
+          monthItems.push({ date: dk, type: 'exam', label: '段考日' });
+        }
+        const mList = state.calendarMemos[dk] || [];
+        for (let k = 0; k < mList.length; k++) {
+          monthItems.push({ date: dk, type: 'memo', label: mList[k].text });
+        }
+      }
+      let mHtml = '<div class="tf-row-between" style="align-items: center; margin-bottom: 8px;">' +
+        '<h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #0f172a;">📋 ' + (m + 1) + ' 月行事曆事件一覽</h4>' +
+        '<span style="font-size: 10px; color: #94a3b8;">共 ' + monthItems.length + ' 筆</span>' +
+      '</div>';
+      if (monthItems.length === 0) {
+        mHtml += '<p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center; padding: 8px 0;">本月尚無放假、段考或學校活動紀錄</p>';
+      } else {
+        mHtml += '<div style="display: flex; flex-direction: column; gap: 6px;">';
+        for (let idx = 0; idx < monthItems.length; idx++) {
+          const it = monthItems[idx];
+          const badgeStyle = it.type === 'hol'
+            ? 'background:#ffe4e6;color:#be123c;'
+            : (it.type === 'exam' ? 'background:#fef3c7;color:#92400e;' : 'background:#eef2ff;color:#4338ca;');
+          const badgeTxt = it.type === 'hol' ? '放假' : (it.type === 'exam' ? '段考' : '行事曆');
+          mHtml +=
+            '<div onclick="window.tfApp.selectCalDate(\'' + it.date + '\')" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:#f8fafc;border:1px solid #f1f5f9;cursor:pointer;font-size:12px;">' +
+              '<span style="font-family:monospace;font-weight:700;color:#475569;font-size:11px;">' + it.date.slice(5) + '</span>' +
+              '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:999px;' + badgeStyle + '">' + badgeTxt + '</span>' +
+              '<span style="color:#1e293b;font-weight:600;flex:1;">' + esc(it.label) + '</span>' +
+            '</div>';
+        }
+        mHtml += '</div>';
+      }
+      monthBox.innerHTML = mHtml;
+    }
   }
 
   function renderMatrix() {
@@ -2877,49 +2982,320 @@
     saveApiKey: function(val) {
       state.apiKey = (val || '').trim();
       safeSet('gemini_user_api_key', state.apiKey);
+      const st = document.getElementById('api-key-status');
+      if (st) {
+        st.textContent = state.apiKey ? '✅ 已儲存 API Key，上傳圖檔或 PDF 將直接呼叫 Gemini 辨識。' : '未設定金鑰時僅供體驗模擬辨識，或可使用下方「免 Key 貼上 JSON」匯入。';
+      }
       showToast('API Key 已安全儲存於本機', '🔑');
     },
 
-    triggerMockImport: function() {
-      window.tfApp.handleFileUpload({ target: { files: [new Blob(['mock'])] } }, 'schedule');
+    discoverGeminiModels: async function(apiKey) {
+      const fallbacks = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+      try {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + encodeURIComponent(apiKey));
+        if (!res.ok) return fallbacks;
+        const json = await res.json();
+        const models = (json.models || [])
+          .filter(function(m) {
+            const methods = m.supportedGenerationMethods || [];
+            const n = (m.name || '').toLowerCase();
+            return methods.indexOf('generateContent') !== -1 &&
+              n.indexOf('gemini') !== -1 &&
+              n.indexOf('flash') !== -1 &&
+              n.indexOf('embedding') === -1 &&
+              n.indexOf('tts') === -1 &&
+              n.indexOf('image') === -1 &&
+              n.indexOf('audio') === -1;
+          })
+          .map(function(m) { return m.name.replace(/^models\//, ''); })
+          .sort(function(a, b) { return b.localeCompare(a); });
+        return models.length > 0 ? models.concat(fallbacks.filter(function(f) { return models.indexOf(f) === -1; })) : fallbacks;
+      } catch (e) {
+        return fallbacks;
+      }
     },
 
-    handleFileUpload: function(event, type) {
-      const file = event.target.files && event.target.files[0];
+    testGeminiKey: async function() {
+      const inp = document.getElementById('input-api-key');
+      if (inp) state.apiKey = (inp.value || '').trim();
+      safeSet('gemini_user_api_key', state.apiKey);
+      const st = document.getElementById('api-key-status');
+      if (!state.apiKey) {
+        if (st) st.textContent = '⚠️ 請先貼上 Gemini API Key。';
+        showToast('請先輸入 API Key', '⚠️');
+        return;
+      }
+      if (st) st.textContent = '⏳ 正在測試 API Key 與偵測可用模型...';
+      try {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + encodeURIComponent(state.apiKey));
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error((json.error && json.error.message) || ('HTTP ' + res.status));
+        }
+        const candidates = await window.tfApp.discoverGeminiModels(state.apiKey);
+        if (st) st.textContent = '✅ 連線成功！將優先使用模型：' + candidates[0];
+        showToast('API Key 驗證成功（' + candidates[0] + '）', '✅');
+      } catch (err) {
+        if (st) st.textContent = '❌ 連線失敗：' + err.message;
+        showToast('API Key 測試失敗', '❌');
+      }
+    },
+
+    getAiPromptText: function(type) {
+      if (type === 'calendar') {
+        return '請精準辨識這份學校行事曆中的所有重要事項：放假/補假/連假放進 holidays，段考區間放進 examRange，其餘所有學校活動與行事曆事項（如模擬考、校慶、班會、重要日程）全部放進 memos，日期一律使用西元 YYYY-MM-DD 格式，只輸出純 JSON，不要加說明文字：\n{"holidays":[{"date":"2026-12-07","name":"校慶補假"}],"examRange":{"startDate":"2026-11-25","endDate":"2026-11-26"},"memos":[{"date":"2026-12-05","text":"學校校慶"}]}';
+      }
+      return '請精準辨識這份教師課表，提取週一(1)至週五(5)、第1節至第7節的授課班級名稱（空堂留空字串），只輸出純 JSON 格式，不要加任何說明文字：\n{"routineSchedule":{"1":{"1":"101 班","2":"","3":"103 班","4":"","5":"","6":"","7":""},"2":{},"3":{},"4":{},"5":{}},"detectedClasses":["101 班","103 班"]}';
+    },
+
+    copyAiPrompt: function(type) {
+      const txt = window.tfApp.getAiPromptText(type);
+      const box = document.getElementById('import-prompt-box');
+      const titleEl = document.getElementById('import-prompt-title');
+      const ta = document.getElementById('import-prompt-textarea');
+      if (titleEl) {
+        titleEl.textContent = type === 'calendar' ? '📋 行事曆辨識指令（免 API Key）' : '📋 課表辨識指令（免 API Key）';
+      }
+      if (ta) ta.value = txt;
+      if (box) box.classList.remove('tf-hidden');
+      window.tfApp.copyVisiblePrompt();
+    },
+
+    copyVisiblePrompt: function() {
+      const ta = document.getElementById('import-prompt-textarea');
+      const hintEl = document.getElementById('import-prompt-hint');
+      if (!ta) return;
+      const txt = ta.value || '';
+      const markDone = function(ok) {
+        if (hintEl) {
+          hintEl.textContent = ok
+            ? '✅ 已複製！將指令連同圖檔貼給 Gemini，再將回傳的 JSON 貼入匯入'
+            : '請點擊上方文字框全選複製後，連同圖檔貼給 Gemini';
+        }
+        showToast(ok ? '已複製辨識指令！' : '已展開指令，請直接全選複製', '📋');
+      };
+      const tryExecCopy = function() {
+        ta.focus();
+        ta.select();
+        try { ta.setSelectionRange(0, txt.length); } catch (e) {}
+        let copied = false;
+        try { copied = document.execCommand('copy'); } catch (e) {}
+        markDone(copied);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function() {
+          markDone(true);
+        }).catch(function() {
+          tryExecCopy();
+        });
+      } else {
+        tryExecCopy();
+      }
+    },
+
+    openPasteJsonPreview: function() {
+      const previewCard = document.getElementById('import-preview-card');
+      const previewJson = document.getElementById('import-preview-json');
+      const summaryEl = document.getElementById('import-preview-summary');
+      const errBox = document.getElementById('import-error-box');
+      if (errBox) errBox.classList.add('tf-hidden');
+      if (summaryEl) summaryEl.textContent = '請將 Gemini 產出的 JSON 貼到下方文字框，確認後點「確認套用至課表」。';
+      if (previewJson) {
+        previewJson.value = '';
+        previewJson.placeholder = '在此貼上 JSON（支援 routineSchedule 課表或 holidays 行事曆格式）...';
+      }
+      state.tempImportData = {};
+      if (previewCard) previewCard.classList.remove('tf-hidden');
+    },
+
+    prepareFileInlineData: function(file) {
+      return new Promise(function(resolve, reject) {
+        let mime = file.type || '';
+        const nameLower = (file.name || '').toLowerCase();
+        if (!mime) {
+          if (nameLower.endsWith('.pdf')) mime = 'application/pdf';
+          else if (nameLower.endsWith('.png')) mime = 'image/png';
+          else if (nameLower.endsWith('.webp')) mime = 'image/webp';
+          else mime = 'image/jpeg';
+        }
+        if (mime === 'application/pdf') {
+          const reader = new FileReader();
+          reader.onload = function() {
+            const parts = String(reader.result || '').split(',');
+            resolve({ mime_type: 'application/pdf', data: parts[1] || '' });
+          };
+          reader.onerror = function() { reject(new Error('無法讀取 PDF 檔案')); };
+          reader.readAsDataURL(file);
+          return;
+        }
+        // 圖片自動壓縮至長邊 1600px JPEG，避免手機高畫質圖檔過大或格式不相容
+        const reader = new FileReader();
+        reader.onload = function() {
+          const img = new Image();
+          img.onload = function() {
+            try {
+              const maxSide = 1600;
+              let w = img.width;
+              let h = img.height;
+              if (w > maxSide || h > maxSide) {
+                if (w >= h) { h = Math.round(h * maxSide / w); w = maxSide; }
+                else { w = Math.round(w * maxSide / h); h = maxSide; }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, w, h);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+              resolve({ mime_type: 'image/jpeg', data: dataUrl.split(',')[1] });
+            } catch (e) {
+              const parts = String(reader.result || '').split(',');
+              resolve({ mime_type: mime, data: parts[1] || '' });
+            }
+          };
+          img.onerror = function() {
+            const parts = String(reader.result || '').split(',');
+            resolve({ mime_type: mime, data: parts[1] || '' });
+          };
+          img.src = reader.result;
+        };
+        reader.onerror = function() { reject(new Error('無法讀取圖片檔案')); };
+        reader.readAsDataURL(file);
+      });
+    },
+
+    callGeminiVision: async function(inlineData, type) {
+      const models = await window.tfApp.discoverGeminiModels(state.apiKey);
+      const promptText = window.tfApp.getAiPromptText(type);
+      const bodyObj = {
+        contents: [{
+          parts: [
+            { text: promptText },
+            { inline_data: inlineData }
+          ]
+        }],
+        generationConfig: {
+          response_mime_type: 'application/json',
+          temperature: 0.1
+        }
+      };
+
+      let lastErr = '無法連線至 Gemini API';
+      for (let i = 0; i < Math.min(models.length, 4); i++) {
+        const model = models[i];
+        const statusTxt = document.getElementById('import-status-text');
+        if (statusTxt) statusTxt.textContent = '正在透過 ' + model + ' 辨識內容...';
+        const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(state.apiKey);
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyObj)
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          lastErr = (json.error && json.error.message) || ('HTTP ' + res.status);
+          if (res.status === 404 || res.status === 403 || res.status === 429) continue;
+          throw new Error(lastErr);
+        }
+        const rawText = json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts && json.candidates[0].content.parts[0] && json.candidates[0].content.parts[0].text;
+        if (!rawText) throw new Error('AI 未回傳可解析內容');
+        const cleaned = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+        return { parsed: JSON.parse(cleaned), model: model };
+      }
+      throw new Error(lastErr);
+    },
+
+    buildImportSummary: function(obj, modelName) {
+      const parts = [];
+      if (obj.routineSchedule) {
+        let slots = 0;
+        for (const d in obj.routineSchedule) {
+          for (const p in obj.routineSchedule[d]) {
+            if (obj.routineSchedule[d][p]) slots++;
+          }
+        }
+        parts.push('課表排課 ' + slots + ' 節');
+      }
+      if (Array.isArray(obj.detectedClasses)) parts.push('班級 ' + obj.detectedClasses.length + ' 個');
+      if (Array.isArray(obj.holidays)) parts.push('放假/連假 ' + obj.holidays.length + ' 天');
+      if (obj.examRange && obj.examRange.startDate) parts.push('段考日 ' + obj.examRange.startDate);
+      if (Array.isArray(obj.memos)) parts.push('記事 ' + obj.memos.length + ' 筆');
+      return (modelName ? ('🤖 ' + modelName + ' 辨識完成：') : '📋 解析預覽：') + (parts.length ? parts.join(' · ') : '請確認下方 JSON 內容');
+    },
+
+    triggerMockImport: function() {
+      const previewCard = document.getElementById('import-preview-card');
+      const previewJson = document.getElementById('import-preview-json');
+      const summaryEl = document.getElementById('import-preview-summary');
+      const errBox = document.getElementById('import-error-box');
+      if (errBox) errBox.classList.add('tf-hidden');
+      const mockParsed = {
+        routineSchedule: {
+          1: { 1: "101 班", 3: "103 班", 5: "105 班" },
+          2: { 2: "101 班", 4: "103 班" },
+          3: { 1: "105 班", 3: "101 班" },
+          4: { 2: "103 班", 4: "105 班", 5: "101 班" },
+          5: { 1: "103 班", 3: "105 班" }
+        },
+        detectedClasses: ["101 班", "103 班", "105 班"]
+      };
+      state.tempImportData = mockParsed;
+      if (summaryEl) summaryEl.textContent = window.tfApp.buildImportSummary(mockParsed, '範例模擬');
+      if (previewJson) previewJson.value = JSON.stringify(mockParsed, null, 2);
+      if (previewCard) previewCard.classList.remove('tf-hidden');
+      showToast('已載入範例課表預覽！', '✨');
+    },
+
+    handleFileUpload: async function(event, type) {
+      const file = event.target && event.target.files && event.target.files[0];
       if (!file) return;
+      if (event.target) event.target.value = '';
 
       const procBox = document.getElementById('import-processing-box');
       const statusTxt = document.getElementById('import-status-text');
       const previewCard = document.getElementById('import-preview-card');
       const previewJson = document.getElementById('import-preview-json');
+      const summaryEl = document.getElementById('import-preview-summary');
+      const errBox = document.getElementById('import-error-box');
+
+      if (errBox) errBox.classList.add('tf-hidden');
+      if (previewCard) previewCard.classList.add('tf-hidden');
+
+      if (!state.apiKey) {
+        if (errBox) {
+          errBox.innerHTML = '⚠️ <strong>尚未設定 Gemini API Key</strong>：請先在上方填入您的 Google AI Studio API Key（AIza 開頭），或使用下方「免 API Key 替代方案」複製指令到 Gemini 對話後貼上 JSON。';
+          errBox.classList.remove('tf-hidden');
+        }
+        showToast('請先填入 Gemini API Key 才能辨識圖檔', '⚠️');
+        return;
+      }
 
       procBox.classList.remove('tf-hidden');
-      statusTxt.textContent = type === 'calendar' ? '正在解析行事曆放假與段考日期...' : '正在讀取課表影像資訊...';
+      statusTxt.textContent = '正在讀取並最佳化檔案（' + file.name + '）...';
 
-      setTimeout(function() {
-        const mockParsed = type === 'calendar'
-          ? {
-              holidays: [
-                { date: '2026-12-07', name: '校慶補假' },
-                { date: '2027-01-01', name: '元旦放假' }
-              ]
-            }
-          : {
-              routineSchedule: {
-                1: { 1: "101 班", 3: "103 班", 5: "105 班" },
-                2: { 2: "101 班", 4: "103 班" },
-                3: { 1: "105 班", 3: "101 班" },
-                4: { 2: "103 班", 4: "105 班", 5: "101 班" },
-                5: { 1: "103 班", 3: "105 班" }
-              },
-              detectedClasses: ["101 班", "103 班", "105 班"]
-            };
-        state.tempImportData = mockParsed;
-        previewJson.textContent = JSON.stringify(mockParsed, null, 2);
+      try {
+        const inlineData = await window.tfApp.prepareFileInlineData(file);
+        const result = await window.tfApp.callGeminiVision(inlineData, type);
+        state.tempImportData = result.parsed;
         procBox.classList.add('tf-hidden');
-        previewCard.classList.remove('tf-hidden');
-        showToast('影像辨識完成，請核對預覽！', '✨');
-      }, 700);
+
+        const autoCommitEl = document.getElementById('chk-auto-commit-import');
+        if (!autoCommitEl || autoCommitEl.checked) {
+          window.tfApp.applyImportedData(result.parsed, result.model);
+        } else {
+          if (summaryEl) summaryEl.textContent = window.tfApp.buildImportSummary(result.parsed, result.model);
+          if (previewJson) previewJson.value = JSON.stringify(result.parsed, null, 2);
+          previewCard.classList.remove('tf-hidden');
+          showToast('AI 辨識完成，請核對預覽！', '✨');
+        }
+      } catch (err) {
+        procBox.classList.add('tf-hidden');
+        if (errBox) {
+          errBox.innerHTML = '❌ <strong>AI 辨識失敗</strong>：' + esc(err.message || '請檢查網路連線與 API Key 是否有效');
+          errBox.classList.remove('tf-hidden');
+        }
+        showToast('辨識失敗：' + (err.message || '未知錯誤'), '❌');
+      }
     },
 
     discardImport: function() {
@@ -2928,31 +3304,131 @@
     },
 
     commitImport: function() {
-      if (!state.tempImportData) return;
+      const previewJson = document.getElementById('import-preview-json');
+      const rawStr = (previewJson && previewJson.value || '').trim();
+      if (!rawStr) {
+        showToast('請先辨識或貼上 JSON 內容', '⚠️');
+        return;
+      }
+      let data = null;
+      try {
+        const cleaned = rawStr.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+        data = JSON.parse(cleaned);
+      } catch (e) {
+        showToast('JSON 格式有誤，請檢查括號與引號', '❌');
+        return;
+      }
+      window.tfApp.applyImportedData(data);
+    },
+
+    applyImportedData: function(data, modelName) {
+      if (!data) return;
       let targetTab = 'schedule';
-      if (state.tempImportData.routineSchedule) {
-        const rs = state.tempImportData.routineSchedule;
+      const replaceSched = document.getElementById('chk-replace-schedule');
+      if (data.routineSchedule) {
+        const rs = data.routineSchedule;
+        if (replaceSched && replaceSched.checked) {
+          state.weeklySchedule = {
+            1: { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '' },
+            2: { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '' },
+            3: { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '' },
+            4: { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '' },
+            5: { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: '' }
+          };
+        }
         for (const d in rs) {
-          state.weeklySchedule[d] = Object.assign({}, state.weeklySchedule[d] || {}, rs[d]);
+          if (!state.weeklySchedule[d]) state.weeklySchedule[d] = {};
+          for (const p in rs[d]) {
+            const clsName = String(rs[d][p] || '').trim();
+            state.weeklySchedule[d][p] = clsName;
+            if (clsName && !state.classesData[clsName]) {
+              state.classesData[clsName] = { chapter: '', completedChapters: [], page: 1, memo: '', manualOffset: 0, pauseTags: [], assistantName: '', assistantEmail: '' };
+            }
+          }
         }
       }
-      if (state.tempImportData.detectedClasses) {
-        state.tempImportData.detectedClasses.forEach(function(c) {
-          if (!state.classesData[c]) {
-            state.classesData[c] = { chapter: '', page: 1, memo: '', manualOffset: 0, pauseTags: [], assistantName: '', assistantEmail: '' };
+      if (Array.isArray(data.detectedClasses)) {
+        data.detectedClasses.forEach(function(c) {
+          const clsName = String(c || '').trim();
+          if (clsName && !state.classesData[clsName]) {
+            state.classesData[clsName] = { chapter: '', completedChapters: [], page: 1, memo: '', manualOffset: 0, pauseTags: [], assistantName: '', assistantEmail: '' };
           }
         });
       }
-      if (Array.isArray(state.tempImportData.holidays)) {
-        state.tempImportData.holidays.forEach(function(h) {
-          if (h.date) state.holidays[h.date] = { name: h.name || '放假停課' };
+      const importedDates = [];
+      const addImportedMemo = function(dateKey, text) {
+        if (!dateKey || !text) return;
+        if (!Array.isArray(state.calendarMemos[dateKey])) state.calendarMemos[dateKey] = [];
+        const exists = state.calendarMemos[dateKey].some(function(x) { return x.text === text; });
+        if (!exists) {
+          state.calendarMemos[dateKey].push({ id: Date.now() + Math.floor(Math.random() * 10000), text: text });
+        }
+        importedDates.push(dateKey);
+      };
+
+      if (Array.isArray(data.holidays)) {
+        data.holidays.forEach(function(h) {
+          const dk = normalizeDateKey(h && h.date);
+          if (dk) {
+            state.holidays[dk] = { name: (h.name || h.title || '放假停課').trim() };
+            importedDates.push(dk);
+          }
         });
         targetTab = 'calendar';
       }
+      if (data.examRange && data.examRange.startDate) {
+        const sDk = normalizeDateKey(data.examRange.startDate);
+        const eDk = normalizeDateKey(data.examRange.endDate || data.examRange.startDate);
+        if (sDk) {
+          state.examStartDate = sDk;
+          state.examEndDate = eDk || sDk;
+          importedDates.push(sDk);
+          targetTab = 'calendar';
+        }
+      }
+      if (Array.isArray(data.memos)) {
+        data.memos.forEach(function(m) {
+          const dk = normalizeDateKey(m && m.date);
+          addImportedMemo(dk, (m && (m.text || m.name || m.title) || '').trim());
+        });
+        targetTab = 'calendar';
+      }
+      if (Array.isArray(data.events)) {
+        data.events.forEach(function(ev) {
+          const dk = normalizeDateKey(ev && ev.date);
+          const label = (ev && (ev.name || ev.title || ev.text) || '').trim();
+          if (!dk || !label) return;
+          if (ev.isHoliday || /放假|補假|連假|停課/.test(label)) {
+            state.holidays[dk] = { name: label };
+            importedDates.push(dk);
+          } else {
+            addImportedMemo(dk, label);
+          }
+        });
+        targetTab = 'calendar';
+      }
+
+      if (targetTab === 'calendar' && importedDates.length > 0) {
+        importedDates.sort();
+        const curPrefix = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-';
+        const inCurMonth = importedDates.find(function(d) { return d.indexOf(curPrefix) === 0; });
+        const focusDate = inCurMonth || importedDates[0];
+        const parts = focusDate.split('-');
+        state.calendarMonth = { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10) - 1 };
+        state.selectedCalDate = focusDate;
+      }
+
+      ensureClassFields();
       saveStorage();
-      document.getElementById('import-preview-card').classList.add('tf-hidden');
+      const previewCard = document.getElementById('import-preview-card');
+      if (previewCard) previewCard.classList.add('tf-hidden');
+      const promptBox = document.getElementById('import-prompt-box');
+      if (promptBox) promptBox.classList.add('tf-hidden');
       window.tfApp.switchTab(targetTab);
-      showToast('資料已成功套用並重算堂數！', '🎉');
+      const summaryMsg = targetTab === 'calendar'
+        ? ('已自動匯入行事曆並重算倒數堂數！' + (modelName ? ' (' + modelName + ')' : ''))
+        : ('已自動匯入課表並重算倒數堂數！' + (modelName ? ' (' + modelName + ')' : ''));
+      showToast(summaryMsg, '🎉');
     },
 
     exportCSV: function() {
